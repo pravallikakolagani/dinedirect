@@ -1,0 +1,85 @@
+/* KDS Styles */
+.kds-main {
+    background-color: var(--bg-color);
+}
+
+.kds-board {
+    display: flex;
+    gap: 20px;
+    height: calc(100vh - 120px);
+    overflow-x: auto;
+}
+
+.kds-col {
+    flex: 1;
+    min-width: 300px;
+    background: rgba(0,0,0,0.02);
+    border-radius: 12px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    border: 1px solid rgba(0,0,0,0.05);
+}
+
+.col-title {
+    font-size: 1.1rem;
+    padding-bottom: 12px;
+    border-bottom: 1px solid rgba(0,0,0,0.1);
+}
+
+.order-ticket {
+    background: var(--card-bg);
+    border-left: 4px solid transparent;
+}
+.order-ticket.border-danger { border-left-color: var(--danger); box-shadow: 0 4px 12px rgba(231, 76, 60, 0.1); }
+.order-ticket.border-warning { border-left-color: var(--warning); box-shadow: 0 4px 12px rgba(241, 196, 15, 0.1); }
+.order-ticket.border-success { border-left-color: var(--success); }
+
+.ticket-header {
+    display: flex;
+    justify-content: space-between;
+    font-weight: bold;
+    border-bottom: 1px dashed rgba(0,0,0,0.1);
+    padding-bottom: 8px;
+    margin-bottom: 12px;
+}
+.order-num { font-size: 1.2rem; }
+.order-time { font-size: 0.8rem; color: var(--text-muted); font-weight: normal; }
+
+.ticket-body ul {
+    list-style: none;
+    font-size: 1rem;
+}
+.ticket-body li {
+    margin-bottom: 8px;
+    display: flex;
+    gap: 8px;
+}
+.ticket-body li strong {
+    color: var(--primary);
+}
+
+.ticket-footer {
+    margin-top: 16px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(0,0,0,0.05);
+}
+.table-num {
+    display: inline-block;
+    background: rgba(0,0,0,0.05);
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.875rem;
+    margin-bottom: 8px;
+}
+
+.pulse-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    background: var(--success);
+    border-radius: 50%;
+    margin-right: 6px;
+    animation: pulse 1s infinite alternate;
+}

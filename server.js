@@ -1,0 +1,218 @@
+import express from 'express';
+import http from 'http';
+import { WebSocketServer } from 'ws';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+// Import SQLite Database operations
+import { 
+    initDatabase, 
+    getState, 
+    registerRestaurant, 
+    addMenuItem, 
+    deleteMenuItem, 
+    addTable, 
+    placeOrder, 
+    updateOrderStatus, 
+    updateOrderPaymentStatus,
+    createSupportAlert,
+    resolveSupportAlert
+} from './database.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const PORT = 3000;
+
+const app = express();
+app.use(express.json());
+
+// Serve static frontend files
+app.use(express.static(__dirname));
+
+const server = http.createServer(app);
+const wss = new WebSocketServer({ server });
+
+// WebSockets Broadcast Helper
+function broadcast(data) {
+    const message = JSON.stringify(data);
+    wss.clients.forEach(client => {
+        if (client.readyState === 1) { // WebSocket.OPEN
+            client.send(message);
+        }
+    });
+}
+
+// REST API Endpoints
+
+// 1. Get entire state
+app.get('/api/state', async (req, res) => {
+    try {
+        const state = await getState();
+        res.json(state);
+    } catch (err) {
+        console.error('Error fetching state:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// 2. Register new restaurant
+app.post('/api/restaurants', async (req, res) => {
+    try {
+        const { email, name, address, password } = req.body;
+        const newRest = await registerRestaurant(email, name, address, password);
+        
+        broadcast({ type: 'STATE_UPDATED' });
+        res.status(201).json(newRest);
+    } catch (err) {
+        console.error('Error registering restaurant:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// 3. Add menu item
+app.post('/api/menu', async (req, res) => {
+    try {
+        const { restaurantId, item } = req.body;
+        const newItem = await addMenuItem(restaurantId, item);
+        
+        broadcast({ type: 'STATE_UPDATED' });
+        res.status(201).json(newItem);
+    } catch (err) {
+        console.error('Error adding menu item:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// 4. Delete menu item
+app.delete('/api/menu/:restId/:itemId', async (req, res) => {
+    try {
+        const { restId, itemId } = req.params;
+        await deleteMenuItem(restId, itemId);
+        
+        broadcast({ type: 'STATE_UPDATED' });
+        res.json({ success: true });
+    } catch (err) {
+        console.error('Error deleting menu item:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// 5. Add dining table
+app.post('/api/tables', async (req, res) => {
+    try {
+        const { restaurantId, tableNum } = req.body;
+        const added = await addTable(restaurantId, tableNum);
+        
+        if (added) {
+            broadcast({ type: 'STATE_UPDATED' });
+            res.status(201).json({ success: true });
+        } else {
+            res.status(400).json({ error: 'Table already exists' });
+        }
+    } catch (err) {
+        console.error('Error adding table:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// 6. Place order
+app.post('/api/orders', async (req, res) => {
+    try {
+        const { restaurantId, tableNum, items, paymentMethod, customerName } = req.body;
+        const newOrder = await placeOrder(restaurantId, tableNum, items, paymentMethod, customerName);
+        
+        broadcast({ type: 'ORDER_PLACED', order: newOrder });
+        res.status(201).json(newOrder);
+    } catch (err) {
+        console.error('Error placing order:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// 7. Update order cooking status
+app.put('/api/orders/:orderId/status', async (req, res) => {
+    try {
+        const { orderId } = req.params;
+        const { status } = req.body;
+        const updatedOrder = await updateOrderStatus(orderId, status);
+        
+        broadcast({ type: 'STATUS_UPDATED', orderId, status });
+        res.json(updatedOrder);
+    } catch (err) {
+        console.error('Error updating order status:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// 8. Update order payment status
+app.put('/api/orders/:orderId/payment', async (req, res) => {
+    try {
+        const { orderId } = req.params;
+        const { paymentStatus } = req.body;
+        const updatedOrder = await updateOrderPaymentStatus(orderId, paymentStatus);
+        
+        broadcast({ type: 'STATE_UPDATED' });
+        res.json(updatedOrder);
+    } catch (err) {
+        console.error('Error updating payment status:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// 9. Create support alert
+app.post('/api/support-alerts', async (req, res) => {
+    try {
+        const { restaurantId, tableNum, customerName, message } = req.body;
+        const newAlert = await createSupportAlert(restaurantId, tableNum, customerName, message);
+        
+        broadcast({ type: 'STATE_UPDATED' }); // Sync state for everyone
+        res.status(201).json(newAlert);
+    } catch (err) {
+        console.error('Error creating support alert:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// 10. Resolve support alert
+app.put('/api/support-alerts/:alertId/resolve', async (req, res) => {
+    try {
+        const { alertId } = req.params;
+        await resolveSupportAlert(alertId);
+        
+        broadcast({ type: 'STATE_UPDATED' }); // Sync state for everyone
+        res.json({ success: true });
+    } catch (err) {
+        console.error('Error resolving support alert:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// WebSocket Server Connections
+wss.on('connection', (ws) => {
+    console.log('Client connected to WebSocket server');
+    
+    ws.on('message', (message) => {
+        try {
+            const data = JSON.parse(message);
+            console.log('Received WebSocket message:', data);
+        } catch (err) {
+            console.error('Error parsing WebSocket client message:', err);
+        }
+    });
+
+    ws.on('close', () => {
+        console.log('Client disconnected');
+    });
+});
+
+// Initialize database before starting HTTP server
+initDatabase().then(() => {
+    server.listen(PORT, () => {
+        console.log(`\n======================================================`);
+        console.log(`Dine Direct SQLite server is running on http://localhost:${PORT}`);
+        console.log(`======================================================\n`);
+    });
+}).catch(err => {
+    console.error('CRITICAL: Failed to initialize SQLite database:', err);
+});

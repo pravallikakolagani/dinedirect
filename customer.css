@@ -1,0 +1,502 @@
+/* Mobile-first constraints for Customer UI */
+.customer-layout {
+    max-width: 480px;
+    margin: 0 auto;
+    background: var(--bg-color);
+    min-height: 100vh;
+    position: relative;
+    box-shadow: 0 0 20px rgba(0,0,0,0.05);
+}
+
+.mobile-top-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 20px 10px;
+    background: var(--bg-color);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.location-badge {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: rgba(255, 107, 53, 0.1);
+    color: var(--primary);
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.mobile-main {
+    padding: 0 20px 80px; /* buffer for bottom nav */
+}
+
+.search-container {
+    display: flex;
+    gap: 10px;
+}
+
+.search-input-wrapper {
+    flex: 1;
+    position: relative;
+}
+
+.search-input-wrapper i {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+}
+
+.search-input-wrapper input {
+    padding-left: 40px;
+    border-radius: 12px;
+}
+
+.category-pills {
+    display: flex;
+    gap: 12px;
+    overflow-x: auto;
+    padding-bottom: 8px;
+    /* hide scrollbar */
+    scrollbar-width: none; 
+}
+.category-pills::-webkit-scrollbar { display: none; }
+
+.pill {
+    padding: 8px 16px;
+    background: var(--card-bg);
+    border: 1px solid rgba(0,0,0,0.1);
+    border-radius: 20px;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.pill.active {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+}
+
+/* Restaurant Cards */
+.rest-card {
+    padding: 0;
+    overflow: hidden;
+    cursor: pointer;
+}
+
+.rest-image {
+    height: 180px;
+    background-size: cover;
+    background-position: center;
+    position: relative;
+}
+
+.rating-badge {
+    position: absolute;
+    bottom: 12px;
+    left: 12px;
+    background: var(--success);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.875rem;
+}
+.rating-badge i { width: 14px; height: 14px; }
+
+.rest-info {
+    padding: 16px;
+}
+
+.rest-info h3 { font-size: 1.25rem; margin-bottom: 4px; }
+
+.rest-meta {
+    display: flex;
+    gap: 16px;
+    margin-top: 12px;
+    font-size: 0.875rem;
+    color: var(--text-muted);
+}
+
+.rest-meta span { display: flex; align-items: center; gap: 4px; }
+.rest-meta i { width: 14px; height: 14px; }
+
+/* Bottom Nav */
+.bottom-nav {
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    max-width: 480px;
+    background: var(--card-bg);
+    border-top: 1px solid rgba(0,0,0,0.05);
+    display: flex;
+    justify-content: space-around;
+    padding: 12px 0;
+    z-index: 100;
+}
+
+.bottom-nav a {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 0.75rem;
+    gap: 4px;
+    transition: color 0.2s;
+}
+
+.bottom-nav a.active {
+    color: var(--primary);
+}
+
+/* Restaurant Details */
+.rest-banner {
+    height: 250px;
+    background-size: cover;
+    background-position: center;
+    position: relative;
+}
+.back-btn {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.5);
+    backdrop-filter: blur(4px);
+    border: none;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.rest-details-main {
+    margin-top: -24px;
+    background: var(--bg-color);
+    border-radius: 24px 24px 0 0;
+    position: relative;
+    padding-top: 24px;
+    padding-bottom: 100px;
+}
+
+.menu-item-card {
+    display: flex;
+    justify-content: space-between;
+    padding: 16px;
+    align-items: stretch;
+}
+
+.menu-item-info {
+    flex: 1;
+    padding-right: 16px;
+}
+
+.menu-item-info h4 { font-size: 1.1rem; margin-bottom: 4px; }
+.menu-item-info .price { font-weight: 600; margin-bottom: 8px; }
+.menu-item-info .desc { font-size: 0.875rem; line-height: 1.4; }
+
+.menu-item-action {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100px;
+}
+
+.menu-item-action .item-img, .placeholder-img {
+    width: 100px;
+    height: 100px;
+    border-radius: 12px;
+    object-fit: cover;
+    background: #e9ecef;
+}
+
+.btn-add {
+    background: var(--card-bg);
+    color: var(--success);
+    border: 1px solid var(--success);
+    padding: 6px 20px;
+    border-radius: 8px;
+    font-weight: bold;
+    margin-top: -15px;
+    z-index: 2;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.floating-cart {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: calc(100% - 40px);
+    max-width: 440px;
+    background: var(--success);
+    color: white;
+    padding: 16px 20px;
+    border-radius: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 10px 20px rgba(46, 204, 113, 0.3);
+    cursor: pointer;
+    z-index: 100;
+}
+
+.cart-info {
+    display: flex;
+    flex-direction: column;
+}
+.cart-info .qty { font-size: 0.75rem; font-weight: bold; opacity: 0.9; }
+.cart-info .total { font-weight: bold; font-size: 1.1rem; }
+.view-cart { display: flex; align-items: center; gap: 4px; font-weight: bold; }
+
+/* Checkout / Cart */
+.plain-header { padding: 20px; display: flex; align-items: center; gap: 16px; position: sticky; top: 0; background: var(--bg-color); z-index: 10;}
+.plain-header .back-btn { position: relative; top: 0; left: 0; }
+
+.cart-item { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.item-ctrl { display: flex; align-items: center; gap: 12px; background: rgba(0,0,0,0.05); padding: 4px 8px; border-radius: 8px; }
+.qty-btn { background: transparent; border: none; color: var(--primary); font-size: 1.2rem; cursor: pointer; padding: 0 4px; }
+.bill-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.9rem;}
+.total-row { border-top: 1px dashed rgba(0,0,0,0.1); padding-top: 12px; margin-top: 12px; font-size: 1.1rem; }
+
+.checkout-bar {
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    max-width: 480px;
+    background: var(--card-bg);
+    padding: 20px;
+    border-top: 1px solid rgba(0,0,0,0.05);
+}
+.payment-options { display: flex; gap: 12px; }
+.pay-later-btn { flex: 1; }
+.pay-now-btn { flex: 2; }
+
+/* Tracking */
+.flex-center { display: flex; align-items: center; justify-content: center; min-height: 80vh; }
+.progress-bar-container { background: rgba(0,0,0,0.1); height: 8px; border-radius: 4px; width: 100%; overflow: hidden; }
+.progress-fill { background: var(--primary); height: 100%; transition: width 1s; }
+.order-steps { text-align: left; margin-left: 20%;}
+.step { padding: 12px 0; border-left: 2px solid rgba(0,0,0,0.1); padding-left: 20px; position: relative; color: var(--text-muted); }
+.step::before { content:''; position: absolute; left: -6px; top: 16px; width: 10px; height: 10px; border-radius: 50%; background: var(--card-bg); border: 2px solid rgba(0,0,0,0.1); }
+.step.active { color: var(--text-main); font-weight: bold; }
+.step.active::before { background: var(--primary); border-color: var(--primary); box-shadow: 0 0 10px var(--primary); }
+
+@keyframes pulse {
+    0% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.1); opacity: 0.8; }
+    100% { transform: scale(1); opacity: 1; }
+}
+.pulse { animation: pulse 2s infinite ease-in-out; }
+
+/* AI Chatbot Styles */
+.ai-chatbot-bubble {
+    position: fixed;
+    bottom: 90px;
+    right: 20px;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary), #ff8a5c);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 16px rgba(255, 107, 53, 0.4);
+    cursor: pointer;
+    z-index: 2000;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+.ai-chatbot-bubble:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 20px rgba(255, 107, 53, 0.5);
+}
+.ai-chatbot-bubble.pulse-float {
+    animation: floatPulse 2s infinite ease-in-out;
+}
+@keyframes floatPulse {
+    0% { transform: translateY(0); }
+    50% { transform: translateY(-5px); }
+    100% { transform: translateY(0); }
+}
+
+.ai-chat-window {
+    position: fixed;
+    bottom: 155px;
+    right: 20px;
+    width: 360px;
+    height: 480px;
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+    display: flex;
+    flex-direction: column;
+    z-index: 2000;
+    overflow: hidden;
+    border: 1px solid rgba(0,0,0,0.08);
+    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s ease;
+    transform-origin: bottom right;
+}
+.ai-chat-window.d-none {
+    display: none !important;
+}
+.ai-chat-header {
+    background: linear-gradient(135deg, var(--primary), #ff8a5c);
+    color: white;
+    padding: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.ai-chat-header h3 {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+    font-family: 'Outfit', sans-serif;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: white;
+}
+.ai-chat-header h3 i { width: 18px; height: 18px; }
+.ai-chat-close {
+    background: none;
+    border: none;
+    color: white;
+    cursor: pointer;
+    font-size: 1.2rem;
+    opacity: 0.8;
+    transition: opacity 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.ai-chat-close:hover { opacity: 1; }
+
+.ai-chat-messages {
+    flex: 1;
+    padding: 16px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    background: #f8f9fa;
+}
+
+.chat-msg {
+    max-width: 80%;
+    padding: 10px 14px;
+    border-radius: 12px;
+    font-size: 0.875rem;
+    line-height: 1.4;
+    word-break: break-word;
+}
+.chat-msg.ai {
+    background: white;
+    color: var(--text-main);
+    align-self: flex-start;
+    border-bottom-left-radius: 2px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+    border: 1px solid #f0f0f0;
+}
+.chat-msg.user {
+    background: var(--primary);
+    color: white;
+    align-self: flex-end;
+    border-bottom-right-radius: 2px;
+}
+.chat-msg.system {
+    background: #e9ecef;
+    color: #495057;
+    align-self: center;
+    font-size: 0.75rem;
+    font-weight: bold;
+    border-radius: 10px;
+    padding: 4px 10px;
+    text-align: center;
+    border: 1px solid #dee2e6;
+}
+
+.chat-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 8px 16px;
+    background: #f8f9fa;
+    border-top: 1px solid #f0f0f0;
+}
+.chat-opt-btn {
+    background: white;
+    border: 1px solid var(--primary);
+    color: var(--primary);
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-weight: 500;
+}
+.chat-opt-btn:hover {
+    background: var(--primary);
+    color: white;
+}
+
+.ai-chat-input-area {
+    display: flex;
+    padding: 10px;
+    border-top: 1px solid #eee;
+    background: white;
+    gap: 8px;
+}
+.ai-chat-input-area input {
+    flex: 1;
+    border: 1px solid #ddd;
+    border-radius: 20px;
+    padding: 8px 16px;
+    font-size: 0.875rem;
+    outline: none;
+    transition: border-color 0.2s;
+}
+.ai-chat-input-area input:focus {
+    border-color: var(--primary);
+}
+.ai-chat-input-area button {
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+.ai-chat-input-area button:hover {
+    background: #ff5214;
+}
+
+@media(max-width: 480px) {
+    .ai-chat-window {
+        width: calc(100% - 40px);
+        height: 380px;
+        bottom: 145px;
+        right: 20px;
+    }
+}
+

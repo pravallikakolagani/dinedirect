@@ -1,0 +1,468 @@
+:root {
+    --primary: #FF6B35;
+    --primary-hover: #e85a25;
+    --secondary: #f8f9fa;
+    --bg-color: #f0f2f5;
+    --card-bg: #ffffff;
+    --text-main: #1a1a1a;
+    --text-muted: #666666;
+    --success: #2ecc71;
+    --danger: #e74c3c;
+    --warning: #f1c40f;
+    --font-heading: 'Outfit', sans-serif;
+    --font-body: 'Inter', sans-serif;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: var(--font-body);
+    background-color: var(--bg-color);
+    color: var(--text-main);
+    line-height: 1.5;
+    min-height: 100vh;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-heading);
+    font-weight: 700;
+}
+
+/* Utilities */
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: none;
+    font-family: var(--font-body);
+    font-size: 1rem;
+    gap: 8px;
+}
+
+.btn-primary {
+    background-color: var(--primary);
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: var(--primary-hover);
+    transform: translateY(-2px);
+}
+
+.btn-secondary {
+    background-color: transparent;
+    color: var(--text-main);
+    border: 2px solid var(--text-muted);
+}
+
+.btn-secondary:hover {
+    border-color: var(--text-main);
+}
+
+.btn-block {
+    width: 100%;
+}
+
+.card {
+    background: var(--card-bg);
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+    animation: fadeIn 0.4s ease forwards;
+}
+
+/* Creative Auth Layouts & Elements (Bright & Vibrant Theme) */
+.auth-wrapper {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 50%, #fed7aa 100%); /* Warm peach to golden gradient */
+    position: relative;
+    overflow: hidden;
+}
+
+/* Moving Glowing Blobs in Background (Bright Oranges & Corals) */
+.bg-blob {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(100px);
+    opacity: 0.35;
+    z-index: 1;
+    pointer-events: none;
+    animation: floatBlob 25s infinite alternate ease-in-out;
+}
+.bg-blob-1 {
+    width: 400px;
+    height: 400px;
+    background: #ff7e47; /* Bright Orange */
+    top: -50px;
+    right: -50px;
+}
+.bg-blob-2 {
+    width: 500px;
+    height: 500px;
+    background: #fcd34d; /* Golden Amber */
+    bottom: -100px;
+    left: -100px;
+    animation-delay: -6s;
+}
+.bg-blob-3 {
+    width: 350px;
+    height: 350px;
+    background: #ec4899; /* Vibrant Pink */
+    top: 60%;
+    left: 45%;
+    transform: translate(-50%, -50%);
+    animation-delay: -12s;
+}
+
+@keyframes floatBlob {
+    0% { transform: translate(0, 0) scale(1); }
+    100% { transform: translate(60px, 40px) scale(1.2); }
+}
+
+/* Dual-Pane Premium Authentication Card (Frosted Glass Light Mode) */
+.auth-card {
+    display: flex;
+    width: 100%;
+    max-width: 850px;
+    background: rgba(255, 255, 255, 0.55); /* Bright semi-transparent white */
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-radius: 28px;
+    border: 1.5px solid rgba(255, 255, 255, 0.7);
+    box-shadow: 0 30px 60px -15px rgba(255, 107, 53, 0.15), 0 15px 30px -10px rgba(0, 0, 0, 0.05);
+    overflow: hidden;
+    z-index: 10;
+}
+
+/* Left side marketing banner (Hidden on Mobile) */
+.auth-banner {
+    flex: 1;
+    background: linear-gradient(135deg, rgba(255, 107, 53, 0.88), rgba(249, 115, 22, 0.88)), 
+                url('https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=600&q=80');
+    background-size: cover;
+    background-position: center;
+    background-blend-mode: multiply;
+    padding: 48px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    color: white;
+}
+
+@media (max-width: 768px) {
+    .auth-banner { display: none; }
+    .auth-card { max-width: 420px; }
+}
+
+.auth-banner-title {
+    font-size: 2.3rem;
+    font-weight: 800;
+    line-height: 1.25;
+    background: linear-gradient(to right, #ffffff, #fff3eb);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.auth-banner-features {
+    list-style: none;
+    margin: 32px 0;
+    padding: 0;
+}
+.auth-banner-features li {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 18px;
+    font-weight: 600;
+    font-size: 0.98rem;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.15);
+}
+.auth-banner-features i {
+    color: #fef08a; /* Yellow */
+    width: 22px;
+    height: 22px;
+    flex-shrink: 0;
+}
+
+/* Right side Form pane (Light Theme) */
+.auth-form-side {
+    flex: 1;
+    padding: 44px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.25);
+}
+
+.logo-large {
+    font-size: 2.4rem;
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    background: linear-gradient(135deg, #ea580c, #ff6b35); /* Bright Darker Orange */
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* Segmented Toggle controls (Light Theme) */
+.form-toggle {
+    background: rgba(0, 0, 0, 0.04);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    border-radius: 14px;
+    padding: 6px;
+}
+.toggle-btn {
+    color: #64748b; /* Slate 500 */
+    font-size: 0.92rem;
+    font-weight: 600;
+    border-radius: 10px;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+.toggle-btn.active {
+    background: linear-gradient(135deg, #ff6b35, #ff8c5f);
+    color: white;
+    box-shadow: 0 4px 12px rgba(255, 107, 53, 0.3);
+}
+.toggle-btn:not(.active):hover {
+    color: #1e293b;
+    background: rgba(0, 0, 0, 0.02);
+}
+
+/* Form controls customization (Light Theme) */
+.auth-form-side .form-control {
+    background: #ffffff !important;
+    border: 1.5px solid #cbd5e1 !important; /* Slate 300 */
+    color: #1e293b !important; /* Slate 800 */
+    border-radius: 12px !important;
+    padding: 14px 16px !important;
+    font-weight: 500;
+}
+.auth-form-side .form-control::placeholder {
+    color: #94a3b8;
+}
+.auth-form-side .form-control:focus {
+    border-color: var(--primary) !important;
+    box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.15) !important;
+}
+
+/* Premium outline button for Guest (Light Theme) */
+.btn-outline-premium {
+    background: transparent;
+    color: var(--primary);
+    border: 1.5px solid var(--primary) !important;
+}
+.btn-outline-premium:hover {
+    border-color: var(--primary-hover) !important;
+    color: white;
+    background: var(--primary);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(255, 107, 53, 0.2);
+}
+
+
+
+/* Forms */
+.form-group {
+    margin-bottom: 1rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-size: 0.875rem;
+    color: var(--text-muted);
+}
+
+.form-control {
+    width: 100%;
+    padding: 12px 16px;
+    background-color: #ffffff;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    color: var(--text-main);
+    font-family: var(--font-body);
+    font-size: 1rem;
+    transition: all 0.2s ease;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: var(--primary);
+    background-color: #f8f9fa;
+}
+
+.form-toggle {
+    display: flex;
+    background: #e9ecef;
+    border-radius: 12px;
+    padding: 4px;
+    margin-bottom: 1.5rem;
+}
+
+.toggle-btn {
+    flex: 1;
+    padding: 10px;
+    text-align: center;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.toggle-btn.active {
+    background: var(--primary);
+    color: white;
+}
+
+.text-center { text-align: center; }
+.mt-4 { margin-top: 1rem; }
+.mb-4 { margin-bottom: 1rem; }
+.d-none { display: none !important; }
+
+/* Premium Modals & Overlays */
+.modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(15, 23, 42, 0.45);
+    backdrop-filter: blur(6px);
+    z-index: 2000;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+}
+
+.modal-container {
+    background: var(--card-bg);
+    border-radius: 24px;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.8);
+    transform: scale(0.95);
+    animation: modalScaleUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes modalScaleUp {
+    to {
+        transform: scale(1);
+    }
+}
+
+/* Dynamic Badges System */
+.badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 12px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.025em;
+}
+
+.badge.bg-success {
+    background-color: #def7ec;
+    color: #03543f;
+    border: 1px solid rgba(3, 84, 63, 0.1);
+}
+
+.badge.bg-danger {
+    background-color: #fde8e8;
+    color: #9b1c1c;
+    border: 1px solid rgba(155, 28, 28, 0.1);
+}
+
+.badge.bg-warning {
+    background-color: #fef08a;
+    color: #854d0e;
+    border: 1px solid rgba(133, 77, 14, 0.1);
+}
+
+/* Dietary Dot indicators */
+.diet-dot.veg {
+    background-color: rgba(46, 204, 113, 0.1);
+    border-color: #2ecc71 !important;
+}
+.diet-dot.veg span {
+    background-color: #2ecc71 !important;
+}
+
+.diet-dot.non-veg {
+    background-color: rgba(231, 76, 60, 0.1);
+    border-color: #e74c3c !important;
+}
+.diet-dot.non-veg span {
+    background-color: #e74c3c !important;
+}
+
+/* Scrollbar polish */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.15);
+    border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.25);
+}
+
+/* Micro-animations and hover cards */
+.card {
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.08);
+}
+
+.sidebar .nav-links a {
+    transition: all 0.2s ease;
+}
+
+.sidebar .nav-links a:hover {
+    transform: translateX(4px);
+}
+
