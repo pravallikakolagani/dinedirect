@@ -866,8 +866,9 @@ CustomerViews.ensureSupportChatbot = () => {
         container = document.createElement('div');
         container.id = 'dinedirect-ai-chat-container';
         container.innerHTML = `
-            <div class="ai-chatbot-bubble pulse-float" id="aiChatBubble">
+            <div class="ai-chatbot-bubble pulse-float" style="position:relative;" id="aiChatBubble">
                 <i data-lucide="bot" style="width:28px; height:28px;"></i>
+                <span id="aiChatBadge" class="ai-chat-badge d-none"></span>
             </div>
             <div class="ai-chat-window d-none" id="aiChatWindow">
                 <div class="ai-chat-header">
@@ -945,6 +946,8 @@ CustomerViews.ensureSupportChatbot = () => {
         container.classList.remove('d-none');
     }
 
+    const badge = document.getElementById('aiChatBadge');
+    
     // Check if any tracked support alert was resolved
     if (window.activeSupportAlerts && window.activeSupportAlerts.length > 0) {
         const activeAlerts = window.DineDirectStore.state.supportAlerts || [];
@@ -955,9 +958,33 @@ CustomerViews.ensureSupportChatbot = () => {
             resolved.forEach(id => {
                 addChatMessage('system', '✅ Support request resolved by staff');
                 addChatMessage('ai', 'The staff has marked this support alert as resolved! Let me know if you need anything else.');
+                
+                // Show temporary resolution badge
+                if (badge) {
+                    badge.textContent = '✓';
+                    badge.classList.add('resolved');
+                    badge.classList.remove('d-none');
+                    // Hide after 5 seconds
+                    if (window.aiBadgeTimeout) clearTimeout(window.aiBadgeTimeout);
+                    window.aiBadgeTimeout = setTimeout(() => {
+                        badge.classList.add('d-none');
+                        badge.classList.remove('resolved');
+                    }, 5000);
+                }
+
                 // Remove from activeSupportAlerts
                 window.activeSupportAlerts = window.activeSupportAlerts.filter(aId => aId !== id);
             });
+        }
+    }
+
+    // If there are still active alerts, update badge to alert icon
+    if (badge && !badge.classList.contains('resolved')) {
+        if (window.activeSupportAlerts && window.activeSupportAlerts.length > 0) {
+            badge.textContent = '🔔';
+            badge.classList.remove('d-none');
+        } else {
+            badge.classList.add('d-none');
         }
     }
 };

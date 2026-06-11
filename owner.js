@@ -32,6 +32,7 @@ const OwnerViews = {
         const tables = window.DineDirectStore.getTables(restId);
         const allAlerts = window.DineDirectStore.state.supportAlerts || [];
         const supportAlerts = allAlerts.filter(sa => sa.restaurantId === restId && sa.status === 'active');
+        const resolvedAlerts = allAlerts.filter(sa => sa.restaurantId === restId && sa.status === 'resolved');
         
         const todayStr = new Date().toDateString();
         const todayOrders = orders.filter(o => new Date(o.timestamp).toDateString() === todayStr);
@@ -117,6 +118,34 @@ const OwnerViews = {
                             </div>
                         </div>
                     ` : ''}
+
+                    <!-- Resolved Help History -->
+                    <div class="card mt-4" style="background: #fafafa; border: 1px solid #e5e5e5; padding: 20px;">
+                        <h3 style="margin-bottom:16px; font-size:1.1rem; color:var(--text-muted); display:flex; align-items:center; gap:8px;">
+                            <i data-lucide="history" style="width:16px; height:16px;"></i>
+                            Help Requests History (Last 5 Resolved)
+                        </h3>
+                        ${resolvedAlerts.length === 0 ? `
+                            <p style="font-size:0.85rem; color:#aaa; margin:0;">No resolved support alerts yet.</p>
+                        ` : `
+                            <div style="display:flex; flex-direction:column; gap:8px;">
+                                ${resolvedAlerts.slice(-5).reverse().map(alert => {
+                                    const time = new Date(alert.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                                    return `
+                                        <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.85rem; padding:8px 12px; background:white; border:1px solid #eee; border-radius:6px; color:#555;">
+                                            <div>
+                                                <strong>Table ${alert.tableNum}</strong>: <span style="text-decoration:line-through; color:#aaa;">${alert.message}</span>
+                                                <span style="font-size:0.75rem; color:#bbb; margin-left:8px;">(Guest: ${alert.customerName})</span>
+                                            </div>
+                                            <span style="font-size:0.75rem; color:#aaa; display:flex; align-items:center; gap:4px;">
+                                                <i data-lucide="check" style="width:12px; height:12px; color:var(--success);"></i> Resolved at ${time}
+                                            </span>
+                                        </div>
+                                    `;
+                                }).join('')}
+                            </div>
+                        `}
+                    </div>
 
                     <div class="recent-orders mt-4 card">
                         <h3 style="margin-bottom:16px;">Active Incoming Orders (${activeOrders.length})</h3>

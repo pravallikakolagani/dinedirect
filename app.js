@@ -463,12 +463,55 @@ const Router = () => {
 // Listeners
 window.addEventListener('hashchange', Router);
 
+let prevActiveAlertsCount = 0;
+
 window.addEventListener('DOMContentLoaded', () => {
     // Register store subscription
     window.DineDirectStore.subscribe(() => {
         // Always check chatbot updates (e.g. for resolved alerts notifications)
         if (window.CustomerViews && window.CustomerViews.ensureSupportChatbot) {
             window.CustomerViews.ensureSupportChatbot();
+        }
+
+        // Real-time notifications and audio chime for Owner
+        const session = window.DineDirectStore.getSession();
+        if (session && session.userRole === 'owner') {
+            const restId = session.activeRestaurantId || 'r1';
+            const allAlerts = window.DineDirectStore.state.supportAlerts || [];
+            const activeAlerts = allAlerts.filter(sa => sa.restaurantId === restId && sa.status === 'active');
+            
+            if (activeAlerts.length > prevActiveAlertsCount) {
+                // Play soft notification double-beep
+                try {
+                    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                    const playBeep = (freq, duration, delay) => {
+                        setTimeout(() => {
+                            const osc = audioCtx.createOscillator();
+                            const gain = audioCtx.createGain();
+                            osc.connect(gain);
+                            gain.connect(audioCtx.destination);
+                            osc.frequency.value = freq;
+                            gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+                            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+                            osc.start();
+                            osc.stop(audioCtx.currentTime + duration);
+                        }, delay);
+                    };
+                    playBeep(880, 0.12, 0);
+                    playBeep(1200, 0.15, 120);
+                } catch (e) {
+                    console.error('AudioContext notification sound failed', e);
+                }
+
+                // Show toast alert
+                const newAlert = activeAlerts[activeAlerts.length - 1];
+                if (window.showToast) {
+                    window.showToast(`🚨 HELP REQUEST: Table ${newAlert.tableNum} needs help: "${newAlert.message}"`);
+                }
+            }
+            prevActiveAlertsCount = activeAlerts.length;
+        } else {
+            prevActiveAlertsCount = 0;
         }
 
         // Skip full routing re-render if we have active modal inputs or popup opened
