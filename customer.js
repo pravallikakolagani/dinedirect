@@ -65,6 +65,97 @@ const CustomerViews = {
         }
     },
 
+    // Layout Wrapper for Desktop Sidebar + Mobile Bottom Nav
+    wrapLayout: (contentHtml, activePage) => {
+        const session = window.DineDirectStore.getSession();
+        const userName = session.currentUser || 'Guest';
+        const activeTable = session.activeTableNum;
+        
+        // Sidebar HTML
+        const sidebarHtml = `
+            <aside class="customer-sidebar">
+                <div class="sidebar-logo">
+                    <i data-lucide="cooking-pot" class="logo-icon"></i>
+                    <h2>Foodie</h2>
+                </div>
+                <nav class="sidebar-nav">
+                    <a href="#customer/home" class="nav-item ${activePage === 'home' ? 'active' : ''}">
+                        <i data-lucide="home"></i> <span>Home</span>
+                    </a>
+                    <a href="#customer/home" class="nav-item ${activePage === 'explore' ? 'active' : ''}">
+                        <i data-lucide="compass"></i> <span>Explore</span>
+                    </a>
+                    <a href="#customer/home" class="nav-item ${activePage === 'offers' ? 'active' : ''}">
+                        <i data-lucide="percent"></i> <span>Offers</span>
+                    </a>
+                    <a href="#customer/orders" class="nav-item ${activePage === 'orders' ? 'active' : ''}">
+                        <i data-lucide="receipt"></i> <span>Orders</span>
+                    </a>
+                    <a href="#customer/home" class="nav-item ${activePage === 'favorites' ? 'active' : ''}">
+                        <i data-lucide="heart"></i> <span>Favorites</span>
+                    </a>
+                    <a href="#customer/home" class="nav-item ${activePage === 'addresses' ? 'active' : ''}">
+                        <i data-lucide="map-pin"></i> <span>Addresses</span>
+                    </a>
+                    <a href="#customer/home" class="nav-item ${activePage === 'payments' ? 'active' : ''}">
+                        <i data-lucide="credit-card"></i> <span>Payments</span>
+                    </a>
+                    <a href="#" class="nav-item" id="btnHelpTrigger">
+                        <i data-lucide="help-circle"></i> <span>Help</span>
+                    </a>
+                </nav>
+                <div class="sidebar-promo">
+                    <h4>Get 50% OFF</h4>
+                    <p>on your first order!</p>
+                    <div class="promo-code">WELCOME50</div>
+                    <img src="https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=100&q=80" alt="burger">
+                </div>
+                <div class="sidebar-profile">
+                    <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80" alt="profile" class="profile-pic">
+                    <div class="profile-info">
+                        <span class="profile-name">${userName}</span>
+                        <span class="profile-email">${userName.toLowerCase().replace(/[^a-z0-9]/g, '') || 'guest'}@email.com</span>
+                    </div>
+                    <a href="#auth" onclick="window.DineDirectStore.logout()" class="logout-icon-btn" title="Logout">
+                        <i data-lucide="log-out"></i>
+                    </a>
+                </div>
+            </aside>
+        `;
+
+        // Bottom Navigation for Mobile (Responsive fallback)
+        const bottomNavHtml = `
+            <nav class="bottom-nav">
+                <a href="#customer/home" class="${activePage === 'home' ? 'active' : ''}">
+                    <i data-lucide="home"></i>
+                    <span>Home</span>
+                </a>
+                <a href="#customer/cart" class="${activePage === 'cart' ? 'active' : ''}">
+                    <i data-lucide="shopping-bag"></i>
+                    <span>Cart</span>
+                </a>
+                <a href="#customer/orders" class="${activePage === 'orders' ? 'active' : ''}">
+                    <i data-lucide="receipt"></i>
+                    <span>Orders</span>
+                </a>
+                <a href="#auth" onclick="window.DineDirectStore.logout()">
+                    <i data-lucide="user"></i>
+                    <span>Logout</span>
+                </a>
+            </nav>
+        `;
+
+        return `
+            <div class="customer-desktop-layout">
+                ${sidebarHtml}
+                <div class="customer-main-panel">
+                    ${contentHtml}
+                </div>
+                ${bottomNavHtml}
+            </div>
+        `;
+    },
+
     // 1. Home View
     home: () => {
         const session = window.DineDirectStore.getSession();
@@ -72,113 +163,159 @@ const CustomerViews = {
         const activeTable = session.activeTableNum;
         const restaurants = window.DineDirectStore.getRestaurants();
 
-        return `
-            <div class="customer-layout fade-in">
-                <header class="mobile-top-nav">
-                    <div>
-                        <h2>Hi, ${userName}! 👋</h2>
-                        <p class="text-muted" style="font-size:0.85rem;">
-                            ${activeTable ? `Dining at <strong>Table ${activeTable}</strong>` : 'Scan QR at table to order'}
-                        </p>
+        // Map categories to icons
+        const categories = [
+            { name: 'All', icon: '🍽️' },
+            { name: 'Biryani', icon: '🍛' },
+            { name: 'Dabbas', icon: '🍱' },
+            { name: 'Cafes', icon: '☕' },
+            { name: 'Fast Food', icon: '🍔' },
+            { name: 'Desserts', icon: '🍰' }
+        ];
+
+        // Gather all menu items for "Top picks for you"
+        let allItems = [];
+        restaurants.forEach(rest => {
+            rest.menu.forEach(item => {
+                allItems.push({ ...item, restaurantId: rest.id });
+            });
+        });
+        const topPicks = allItems.slice(0, 4);
+
+        const homeHtml = `
+            <div class="customer-home-content fade-in">
+                <!-- Top Header -->
+                <header class="home-top-bar">
+                    <div class="delivery-location">
+                        <i data-lucide="map-pin" class="location-icon"></i>
+                        <div class="location-details">
+                            <span class="loc-label">Deliver to</span>
+                            <div class="loc-select">
+                                <strong>221B Baker Street, London</strong>
+                                <i data-lucide="chevron-down"></i>
+                            </div>
+                        </div>
                     </div>
-                    <div class="location-badge">
-                        <i data-lucide="map-pin"></i> <span>Hyderabad</span>
+                    <div class="search-and-scan">
+                        <div class="search-input-wrapper">
+                            <i data-lucide="search"></i>
+                            <input type="text" id="restaurantSearch" class="form-control" placeholder="Search for restaurants or cuisines...">
+                        </div>
+                        <button class="btn btn-primary" id="btnOpenScanner" title="Scan Table QR Code">
+                            <i data-lucide="qr-code"></i> <span>Scan</span>
+                        </button>
                     </div>
                 </header>
 
-                <main class="mobile-main">
-                    <!-- Search Bar -->
-                    <div class="search-container mt-4">
-                        <div class="search-input-wrapper">
-                            <i data-lucide="search"></i>
-                            <input type="text" id="restaurantSearch" class="form-control" placeholder="Search restaurant or cuisine...">
-                        </div>
-                        <button class="btn btn-primary ml-2" id="btnOpenScanner">
-                            <i data-lucide="qr-code"></i> Scan
-                        </button>
+                <!-- Hero Banner Carousel -->
+                <section class="hero-promo-card">
+                    <div class="promo-text-pane">
+                        <span class="hot-deal-tag">HOT DEAL</span>
+                        <h1>50% OFF on your<br>first order</h1>
+                        <p class="promo-coupon">Use code <strong>WELCOME50</strong></p>
+                        <button class="btn btn-order-now" onclick="window.location.hash='#customer/restaurant/r1'">Order Now <i data-lucide="arrow-right"></i></button>
                     </div>
-
-                    <!-- Categories -->
-                    <h3 class="mt-4 mb-4">What are you craving?</h3>
-                    <div class="category-pills" id="homeCategories">
-                        <div class="pill active" data-category="All">All</div>
-                        <div class="pill" data-category="Biryani">Biryani</div>
-                        <div class="pill" data-category="Dabbas">Dabbas</div>
-                        <div class="pill" data-category="Cafes">Cafes</div>
-                        <div class="pill" data-category="Fast Food">Fast Food</div>
+                    <div class="promo-image-pane">
+                        <img src="https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=500&q=80" alt="Special Burger">
                     </div>
+                </section>
 
-                    <!-- Restaurants List -->
-                    <h3 class="mt-4 mb-4">Restaurants</h3>
-                    <div class="restaurant-list" id="homeRestaurantList">
+                <!-- Craving/Categories Grid -->
+                <section class="craving-section mt-4">
+                    <h3>What are you craving?</h3>
+                    <div class="category-grid" id="homeCategories">
+                        ${categories.map((cat, idx) => `
+                            <div class="category-card ${idx === 0 ? 'active' : ''}" data-category="${cat.name}">
+                                <span class="cat-icon">${cat.icon}</span>
+                                <span class="cat-name">${cat.name}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                </section>
+
+                <!-- Popular Restaurants -->
+                <section class="restaurants-section mt-4">
+                    <div class="section-header">
+                        <h3>Popular restaurants</h3>
+                        <a href="#customer/home" class="view-all-link">View all</a>
+                    </div>
+                    <div class="restaurant-grid" id="homeRestaurantList">
                         ${restaurants.map(rest => `
-                            <div class="rest-card card mt-4" data-id="${rest.id}" onclick="window.location.hash='#customer/restaurant/${rest.id}'">
-                                <div class="rest-image" style="background-image: url('${rest.id === 'r1' ? 'https://images.unsplash.com/photo-1631515243349-e0cb75fb8d3a?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60' : 'https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&w=500&q=60'}');">
-                                    <div class="rating-badge"><i data-lucide="star"></i> ${rest.rating || '4.0'}</div>
+                            <div class="restaurant-card" data-id="${rest.id}" onclick="window.location.hash='#customer/restaurant/${rest.id}'">
+                                <div class="card-img-pane" style="background-image: url('${rest.id === 'r1' ? 'https://images.unsplash.com/photo-1631515243349-e0cb75fb8d3a?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60' : 'https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&w=500&q=60'}');">
+                                    <span class="delivery-time-badge">${rest.deliveryTime || '20-30 min'}</span>
+                                    <button class="fav-heart-btn" onclick="event.stopPropagation(); this.classList.toggle('active');"><i data-lucide="heart"></i></button>
                                 </div>
-                                <div class="rest-info">
-                                    <h3>${rest.name}</h3>
-                                    <p class="text-muted">${rest.cuisines || 'Cuisines'} • ${rest.address}</p>
-                                    <div class="rest-meta">
-                                        <span><i data-lucide="clock"></i> ${rest.deliveryTime || '20-30 min'}</span>
-                                        <span><i data-lucide="bike"></i> ${rest.deliveryFee || 'Free Delivery'}</span>
+                                <div class="card-info-pane">
+                                    <div class="card-title-row">
+                                        <h4>${rest.name}</h4>
+                                        <span class="card-rating"><i data-lucide="star"></i> ${rest.rating || '4.0'}</span>
+                                    </div>
+                                    <p class="card-cuisines">${rest.cuisines || 'Cuisines'}</p>
+                                    <div class="card-price-fee">
+                                        <span>$$ • Min. order $10</span>
                                     </div>
                                 </div>
                             </div>
                         `).join('')}
                     </div>
-                </main>
+                </section>
 
-                <!-- QR Scanner Simulation Modal -->
-                <div class="modal-overlay d-none" id="qrScannerModal">
-                    <div class="modal-container card animate-fade-in" style="max-width:350px; width:90%; margin:0 auto; padding:24px;">
-                        <div class="text-center">
-                            <i data-lucide="qr-code" style="width:48px;height:48px;color:var(--primary);margin-bottom:12px;"></i>
-                            <h3>Scan Table QR Code</h3>
-                            <p class="text-muted mt-2" style="font-size:0.9rem;">Simulate scanning by selecting a restaurant and table below.</p>
-                        </div>
-                        <form id="qrScannerForm" class="mt-4">
-                            <div class="form-group">
-                                <label>Select Restaurant</label>
-                                <select class="form-control" id="scanRestId" required>
-                                    ${restaurants.map(r => `<option value="${r.id}">${r.name}</option>`).join('')}
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label>Table Number</label>
-                                <input type="number" class="form-control" id="scanTableNum" placeholder="e.g. 3" min="1" max="20" required>
-                            </div>
-                            <button type="submit" class="btn btn-primary btn-block mt-4">
-                                <i data-lucide="scan"></i> Scan & Enter Menu
-                            </button>
-                            <button type="button" class="btn btn-secondary btn-block mt-2" id="btnCloseScanner">
-                                Cancel
-                            </button>
-                        </form>
+                <!-- Top picks for you -->
+                <section class="picks-section mt-4 mb-4">
+                    <div class="section-header">
+                        <h3>Top picks for you</h3>
+                        <a href="#customer/home" class="view-all-link">View all</a>
                     </div>
-                </div>
+                    <div class="picks-grid">
+                        ${topPicks.map(item => `
+                            <div class="pick-item-card">
+                                <div class="pick-img" style="background-image: url('${item.img || 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?auto=format&fit=crop&w=150&q=80'}');"></div>
+                                <div class="pick-info">
+                                    <h4>${item.name}</h4>
+                                    <p class="pick-desc">${item.desc}</p>
+                                    <div class="pick-price-add">
+                                        <span class="pick-price">₹${item.price}</span>
+                                        <button class="btn btn-add-pick pick-add-btn" data-restid="${item.restaurantId}" data-id="${item.id}">+ Add</button>
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </section>
+            </div>
 
-                <!-- Bottom Navigation -->
-                <nav class="bottom-nav">
-                    <a href="#customer/home" class="active">
-                        <i data-lucide="home"></i>
-                        <span>Home</span>
-                    </a>
-                    <a href="#customer/cart" id="bottomNavCart">
-                        <i data-lucide="shopping-bag"></i>
-                        <span>Cart</span>
-                    </a>
-                    <a href="#customer/orders">
-                        <i data-lucide="receipt"></i>
-                        <span>Orders</span>
-                    </a>
-                    <a href="#auth" onclick="window.DineDirectStore.logout()">
-                        <i data-lucide="user"></i>
-                        <span>Logout</span>
-                    </a>
-                </nav>
+            <!-- QR Scanner Simulation Modal -->
+            <div class="modal-overlay d-none" id="qrScannerModal">
+                <div class="modal-container card animate-fade-in" style="max-width:350px; width:90%; margin:0 auto; padding:24px;">
+                    <div class="text-center">
+                        <i data-lucide="qr-code" style="width:48px;height:48px;color:var(--primary);margin-bottom:12px;"></i>
+                        <h3>Scan Table QR Code</h3>
+                        <p class="text-muted mt-2" style="font-size:0.9rem;">Simulate scanning by selecting a restaurant and table below.</p>
+                    </div>
+                    <form id="qrScannerForm" class="mt-4">
+                        <div class="form-group">
+                            <label>Select Restaurant</label>
+                            <select class="form-control" id="scanRestId" required>
+                                ${restaurants.map(r => `<option value="${r.id}">${r.name}</option>`).join('')}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Table Number</label>
+                            <input type="number" class="form-control" id="scanTableNum" placeholder="e.g. 3" min="1" max="20" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-block mt-4">
+                            <i data-lucide="scan"></i> Scan & Enter Menu
+                        </button>
+                        <button type="button" class="btn btn-secondary btn-block mt-2" id="btnCloseScanner">
+                            Cancel
+                        </button>
+                    </form>
+                </div>
             </div>
         `;
+
+        return CustomerViews.wrapLayout(homeHtml, 'home');
     },
 
     setupHomeListeners: () => {
@@ -219,13 +356,9 @@ const CustomerViews = {
                 qrScannerModal.classList.add('d-none');
                 qrScannerModal.style.display = 'none';
                 
-                // Redirect using query params to simulate a QR code scan URL
                 window.location.hash = `#customer/home?table=${tableNum}&restaurantId=${restId}`;
-                
-                // Alert simulation toast
                 showToast(`Successfully scanned Table ${tableNum}!`);
                 
-                // Route to the restaurant menu
                 setTimeout(() => {
                     window.location.hash = `#customer/restaurant/${restId}`;
                 }, 400);
@@ -233,15 +366,15 @@ const CustomerViews = {
         }
 
         // Categories pill selection
-        const pills = document.querySelectorAll('#homeCategories .pill');
-        const restCards = document.querySelectorAll('#homeRestaurantList .rest-card');
+        const categoryCards = document.querySelectorAll('#homeCategories .category-card');
+        const restCards = document.querySelectorAll('#homeRestaurantList .restaurant-card');
         
-        pills.forEach(pill => {
-            pill.addEventListener('click', () => {
-                pills.forEach(p => p.classList.remove('active'));
-                pill.classList.add('active');
+        categoryCards.forEach(card => {
+            card.addEventListener('click', () => {
+                categoryCards.forEach(c => c.classList.remove('active'));
+                card.classList.add('active');
                 
-                const category = pill.getAttribute('data-category');
+                const category = card.getAttribute('data-category');
                 filterRestaurants(category, document.getElementById('restaurantSearch').value);
             });
         });
@@ -251,8 +384,8 @@ const CustomerViews = {
         if (searchInput) {
             searchInput.addEventListener('input', (e) => {
                 const query = e.target.value;
-                const activePill = document.querySelector('#homeCategories .pill.active');
-                const category = activePill ? activePill.getAttribute('data-category') : 'All';
+                const activeCard = document.querySelector('#homeCategories .category-card.active');
+                const category = activeCard ? activeCard.getAttribute('data-category') : 'All';
                 filterRestaurants(category, query);
             });
         }
@@ -268,7 +401,6 @@ const CustomerViews = {
 
                 const nameMatch = rest.name.toLowerCase().includes(query) || rest.address.toLowerCase().includes(query);
                 
-                // For category filter, check if any menu item of this restaurant matches category
                 let categoryMatch = true;
                 if (category !== 'All') {
                     categoryMatch = rest.menu.some(item => item.category === category);
@@ -278,6 +410,34 @@ const CustomerViews = {
                     card.classList.remove('d-none');
                 } else {
                     card.classList.add('d-none');
+                }
+            });
+        }
+
+        // Top picks add button wiring
+        document.querySelectorAll('.pick-add-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const restId = btn.getAttribute('data-restid');
+                const itemId = btn.getAttribute('data-id');
+                window.DineDirectStore.addToCart(restId, itemId);
+                showToast('Item added to cart!');
+            });
+        });
+
+        // Wire Help Trigger inside sidebar
+        const helpBtn = document.getElementById('btnHelpTrigger');
+        if (helpBtn) {
+            helpBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                const chatWin = document.getElementById('aiChatWindow');
+                const bubble = document.getElementById('aiChatBubble');
+                if (chatWin && bubble) {
+                    chatWin.classList.remove('d-none');
+                    bubble.classList.remove('pulse-float');
+                    if (CustomerViews.renderChatMessages) {
+                        CustomerViews.renderChatMessages();
+                    }
                 }
             });
         }
@@ -306,14 +466,14 @@ const CustomerViews = {
         // Group menu items by category
         const categories = [...new Set(menu.map(item => item.category))];
 
-        return `
-            <div class="customer-layout fade-in">
+        const restHtml = `
+            <div class="customer-restaurant-content fade-in">
                 <!-- Banner Image -->
-                <div class="rest-banner" style="background-image: url('${restId === 'r1' ? 'https://images.unsplash.com/photo-1631515243349-e0cb75fb8d3a?ixlib=rb-1.2.1&auto=format&fit=crop&w=1000&q=80' : 'https://images.unsplash.com/photo-1552590635-27c2c21287f5?auto=format&fit=crop&w=1000&q=80'}');">
+                <div class="rest-banner" style="background-image: url('${restId === 'r1' ? 'https://images.unsplash.com/photo-1631515243349-e0cb75fb8d3a?ixlib=rb-1.2.1&auto=format&fit=crop&w=1000&q=80' : 'https://images.unsplash.com/photo-1552590635-27c2c21287f5?auto=format&fit=crop&w=1000&q=80'}'); height: 200px; border-radius: 20px; overflow: hidden; margin-bottom: 20px;">
                     <button class="back-btn" onclick="window.location.hash='#customer/home'"><i data-lucide="arrow-left"></i></button>
                 </div>
                 
-                <main class="mobile-main rest-details-main">
+                <main class="rest-details-main">
                     <div class="rest-header">
                         <h1>${rest.name}</h1>
                         <p class="text-muted">${rest.address} • Table Service</p>
@@ -397,6 +557,7 @@ const CustomerViews = {
                 </div>
             </div>
         `;
+        return CustomerViews.wrapLayout(restHtml, 'explore');
     },
 
     setupRestaurantListeners: (restId) => {
@@ -427,7 +588,6 @@ const CustomerViews = {
     },
 
 
-    // 3. Checkout Cart View
     cart: () => {
         const session = window.DineDirectStore.getSession();
         const restId = session.activeRestaurantId || 'r1';
@@ -452,8 +612,8 @@ const CustomerViews = {
         const serviceCharge = Math.round(subtotal * 0.05); // 5% Service Charge
         const total = subtotal + tax + serviceCharge;
 
-        return `
-            <div class="customer-layout fade-in bg-gray" style="min-height:100vh;">
+        const cartHtml = `
+            <div class="customer-cart-content fade-in bg-gray" style="min-height:100vh;">
                 <header class="plain-header">
                     <button class="back-btn" onclick="window.location.hash='#customer/restaurant/${restId}'"><i data-lucide="arrow-left"></i></button>
                     <h2>Checkout</h2>
@@ -518,8 +678,8 @@ const CustomerViews = {
                 </main>
 
                 ${cartItems.length > 0 ? `
-                    <div class="checkout-bar" style="position:fixed; bottom:0; width:100%; max-width:480px; background:var(--card-bg); padding:20px; border-top:1px solid rgba(0,0,0,0.05); z-index:1000;">
-                        <div class="payment-options" style="display:flex; gap:12px;">
+                    <div class="checkout-bar text-center">
+                        <div class="payment-options" style="display:flex; gap:12px; max-width: 480px; margin: 0 auto;">
                             <button class="btn btn-secondary pay-later-btn" id="btnPayLater" style="flex:1; border:2px solid var(--text-muted);">Pay at Counter</button>
                             <button class="btn btn-primary pay-now-btn" id="btnPayNow" style="flex:1.5;">Pay Online (₹${total}) <i data-lucide="arrow-right"></i></button>
                         </div>
@@ -553,6 +713,7 @@ const CustomerViews = {
                 </div>
             </div>
         `;
+        return CustomerViews.wrapLayout(cartHtml, 'cart');
     },
 
     setupCartListeners: () => {
@@ -657,14 +818,11 @@ const CustomerViews = {
         }
     },
 
-
-    // 4. Order Tracking View
     tracking: () => {
         const session = window.DineDirectStore.getSession();
         const restId = session.activeRestaurantId || 'r1';
         const activeTable = session.activeTableNum;
         
-        // Find latest active order for this table/session
         const orders = window.DineDirectStore.getOrders(restId);
         const activeOrder = orders.reverse().find(o => 
             (activeTable && String(o.tableNum) === String(activeTable) && o.status !== 'delivered') || 
@@ -672,8 +830,8 @@ const CustomerViews = {
         );
 
         if (!activeOrder) {
-            return `
-                <div class="customer-layout fade-in">
+            const emptyTracking = `
+                <div class="customer-tracking-content fade-in">
                     <header class="plain-header">
                         <h2>Order Status</h2>
                     </header>
@@ -685,6 +843,7 @@ const CustomerViews = {
                     </main>
                 </div>
             `;
+            return CustomerViews.wrapLayout(emptyTracking, 'orders');
         }
 
         // Determine step statuses & progress fill
@@ -725,8 +884,8 @@ const CustomerViews = {
             statusDesc = 'Enjoy your food! Thanks for ordering.';
         }
 
-        return `
-            <div class="customer-layout fade-in" style="min-height:100vh;">
+        const trackingHtml = `
+            <div class="customer-tracking-content fade-in" style="min-height:100vh;">
                 <header class="plain-header" style="border-bottom:1px solid rgba(0,0,0,0.05);">
                     <h2>Live Tracking</h2>
                 </header>
@@ -764,19 +923,19 @@ const CustomerViews = {
                 </main>
             </div>
         `;
+        return CustomerViews.wrapLayout(trackingHtml, 'orders');
     },
 
     setupTrackingListeners: () => {},
 
 
-    // 5. Orders History View
     orders: () => {
         const session = window.DineDirectStore.getSession();
         const restId = session.activeRestaurantId || 'r1';
         const orders = window.DineDirectStore.getOrders(restId).reverse();
 
-        return `
-            <div class="customer-layout fade-in" style="min-height:100vh;">
+        const ordersHtml = `
+            <div class="customer-orders-content fade-in" style="min-height:100vh;">
                 <header class="plain-header" style="border-bottom:1px solid rgba(0,0,0,0.05);">
                     <h2>Your Order History</h2>
                 </header>
@@ -822,26 +981,9 @@ const CustomerViews = {
                         }).join('')}
                     </div>
                 </main>
-                <nav class="bottom-nav">
-                    <a href="#customer/home">
-                        <i data-lucide="home"></i>
-                        <span>Home</span>
-                    </a>
-                    <a href="#customer/cart">
-                        <i data-lucide="shopping-bag"></i>
-                        <span>Cart</span>
-                    </a>
-                    <a href="#customer/orders" class="active">
-                        <i data-lucide="receipt"></i>
-                        <span>Orders</span>
-                    </a>
-                    <a href="#auth" onclick="window.DineDirectStore.logout()">
-                        <i data-lucide="user"></i>
-                        <span>Logout</span>
-                    </a>
-                </nav>
             </div>
         `;
+        return CustomerViews.wrapLayout(ordersHtml, 'orders');
     },
 
     setupOrdersListeners: () => {}
@@ -905,9 +1047,7 @@ CustomerViews.ensureSupportChatbot = () => {
         bubble.addEventListener('click', () => {
             chatWin.classList.toggle('d-none');
             bubble.classList.remove('pulse-float');
-            // Scroll to bottom when opening
-            const msgBox = document.getElementById('aiChatMessages');
-            if (msgBox) msgBox.scrollTop = msgBox.scrollHeight;
+            CustomerViews.renderChatMessages();
         });
 
         closeBtn.addEventListener('click', () => {
@@ -915,31 +1055,45 @@ CustomerViews.ensureSupportChatbot = () => {
             bubble.classList.add('pulse-float');
         });
 
-        inputForm.addEventListener('submit', (e) => {
+        inputForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const field = document.getElementById('aiChatInputField');
             const text = field.value.trim();
             if (!text) return;
             field.value = '';
 
-            addChatMessage('user', text);
-            
-            // AI thinks and replies
-            setTimeout(() => {
-                window.pendingAlertMessage = text;
-                addChatMessage('ai', `I understand there is an issue: "${text}". I can notify the service desk to assist Table ${window.DineDirectStore.getSession().activeTableNum || 'Online'} with this. Would you like me to alert them now?`);
-                renderChatOptions([
-                    { text: 'Yes, Alert Staff', value: 'yes' },
-                    { text: 'No, Cancel', value: 'no' }
-                ]);
-            }, 600);
+            const session = window.DineDirectStore.getSession();
+            const restId = session.activeRestaurantId || 'r1';
+            const tableNum = session.activeTableNum || 'Online';
+            const allAlerts = window.DineDirectStore.state.supportAlerts || [];
+            const activeAlert = allAlerts.find(a => a.restaurantId === restId && String(a.tableNum) === String(tableNum) && a.status === 'active');
+
+            if (activeAlert) {
+                // Management Mode: send to DB/server
+                await window.DineDirectStore.sendChatMessage('customer', text);
+            } else {
+                // AI Mode: normal logic
+                addChatMessage('user', text);
+                
+                // AI thinks and replies
+                setTimeout(() => {
+                    window.pendingAlertMessage = text;
+                    addChatMessage('ai', `I understand there is an issue: "${text}". I can notify the service desk to assist Table ${tableNum} with this. Would you like me to alert them now?`);
+                    renderChatOptions([
+                        { text: 'Yes, Alert Staff', value: 'yes' },
+                        { text: 'No, Cancel', value: 'no' }
+                    ]);
+                }, 600);
+            }
         });
 
         // Load welcome message
-        const tableStr = window.DineDirectStore.getSession().activeTableNum ? `Table ${window.DineDirectStore.getSession().activeTableNum}` : 'your table';
-        const userStr = window.DineDirectStore.getSession().currentUser || 'Guest';
-        
-        addChatMessage('ai', `Hi ${userStr}! I'm your DineDirect AI assistant. How is your dining experience at ${tableStr} going today? Let me know if you run into any disturbances or have any requests!`);
+        if (window.aiChatMessagesList.length === 0) {
+            const tableStr = window.DineDirectStore.getSession().activeTableNum ? `Table ${window.DineDirectStore.getSession().activeTableNum}` : 'your table';
+            const userStr = window.DineDirectStore.getSession().currentUser || 'Guest';
+            
+            addChatMessage('ai', `Hi ${userStr}! I'm your DineDirect AI assistant. How is your dining experience at ${tableStr} going today? Let me know if you run into any disturbances or have any requests!`);
+        }
         
         renderDefaultOptions();
     } else {
@@ -964,7 +1118,6 @@ CustomerViews.ensureSupportChatbot = () => {
                     badge.textContent = '✓';
                     badge.classList.add('resolved');
                     badge.classList.remove('d-none');
-                    // Hide after 5 seconds
                     if (window.aiBadgeTimeout) clearTimeout(window.aiBadgeTimeout);
                     window.aiBadgeTimeout = setTimeout(() => {
                         badge.classList.add('d-none');
@@ -978,6 +1131,9 @@ CustomerViews.ensureSupportChatbot = () => {
         }
     }
 
+    // Render chat messages
+    CustomerViews.renderChatMessages();
+
     // If there are still active alerts, update badge to alert icon
     if (badge && !badge.classList.contains('resolved')) {
         if (window.activeSupportAlerts && window.activeSupportAlerts.length > 0) {
@@ -990,6 +1146,72 @@ CustomerViews.ensureSupportChatbot = () => {
 };
 
 // Internal Chatbot Helpers
+CustomerViews.renderChatMessages = () => {
+    const msgBox = document.getElementById('aiChatMessages');
+    if (!msgBox) return;
+
+    const session = window.DineDirectStore.getSession();
+    const restId = session.activeRestaurantId || 'r1';
+    const tableNum = session.activeTableNum || 'Online';
+    const allAlerts = window.DineDirectStore.state.supportAlerts || [];
+    const activeAlert = allAlerts.find(a => a.restaurantId === restId && String(a.tableNum) === String(tableNum) && a.status === 'active');
+
+    msgBox.innerHTML = '';
+
+    if (activeAlert) {
+        // Management Mode: Render welcome + connection system msg + DB messages
+        const welcomeMsg = document.createElement('div');
+        welcomeMsg.className = 'chat-msg ai';
+        welcomeMsg.textContent = `Hi ${session.currentUser || 'Guest'}! I'm your DineDirect AI assistant. How is your dining experience at Table ${tableNum} going today? Let me know if you run into any disturbances or have any requests!`;
+        msgBox.appendChild(welcomeMsg);
+
+        const sysMsg = document.createElement('div');
+        sysMsg.className = 'chat-msg system';
+        sysMsg.textContent = '🔔 Connected to Restaurant Management';
+        msgBox.appendChild(sysMsg);
+
+        // Fetch DB messages
+        const dbMsgs = (window.DineDirectStore.state.chatMessages || []).filter(cm => 
+            cm.restaurantId === restId && String(cm.tableNum) === String(tableNum)
+        );
+
+        dbMsgs.forEach(msg => {
+            const el = document.createElement('div');
+            el.className = `chat-msg ${msg.sender === 'customer' ? 'user' : 'management'}`;
+            el.innerHTML = msg.sender === 'management' 
+                ? `<small style="display:block; font-size:0.7rem; color:var(--primary); font-weight:bold; margin-bottom:2px;">Staff</small>${msg.message}`
+                : msg.message;
+            msgBox.appendChild(el);
+        });
+        
+        // Hide preset options
+        const optBox = document.getElementById('aiChatOptions');
+        if (optBox) optBox.innerHTML = '';
+        
+        // Update input area placeholder
+        const inputField = document.getElementById('aiChatInputField');
+        if (inputField) {
+            inputField.placeholder = "Type message to staff...";
+        }
+    } else {
+        // AI Mode: Render local aiChatMessagesList
+        window.aiChatMessagesList.forEach(msg => {
+            const el = document.createElement('div');
+            el.className = `chat-msg ${msg.sender}`;
+            el.textContent = msg.text;
+            msgBox.appendChild(el);
+        });
+        
+        // Update input area placeholder
+        const inputField = document.getElementById('aiChatInputField');
+        if (inputField) {
+            inputField.placeholder = "Type a message...";
+        }
+    }
+
+    msgBox.scrollTop = msgBox.scrollHeight;
+};
+
 function addChatMessage(sender, text) {
     const msgBox = document.getElementById('aiChatMessages');
     if (!msgBox) return;
@@ -1042,8 +1264,12 @@ async function handleOptionClick(label, value) {
         if (newAlert) {
             window.activeSupportAlerts = window.activeSupportAlerts || [];
             window.activeSupportAlerts.push(newAlert.id);
+            
+            // Send trigger message as first chat message
+            await window.DineDirectStore.sendChatMessage('customer', `Help requested: "${alertMsg}"`);
+            
             addChatMessage('system', '🔔 Support Request Sent (Status: Active)');
-            addChatMessage('ai', `I have notified the staff at the service desk. They will attend to ${tableStr} shortly!`);
+            addChatMessage('ai', `I have connected you directly to the restaurant owner. You can now chat with them below!`);
         } else {
             addChatMessage('ai', 'Sorry, I couldn\'t reach the service desk. Please try again.');
         }
@@ -1069,7 +1295,7 @@ async function handleOptionClick(label, value) {
             aiResponse = `I will alert the housekeeping staff to clean ${tableStr} immediately. Would you like me to notify them now?`;
         } else if (value === 'food') {
             alertText = 'Issue with food quality/incorrect item';
-            aiResponse = `I'm very sorry to hear that! I can alert the manager and chef about this food disturbance. Shall I notify them now?`;
+            aiResponse = `I\'m very sorry to hear that! I can alert the manager and chef about this food disturbance. Shall I notify them now?`;
         } else if (value === 'payment') {
             alertText = 'Payment failed / counter payment help needed';
             aiResponse = `I will notify the billing desk to check your table order payment status. Would you like me to alert them now?`;

@@ -3,6 +3,7 @@ import http from 'http';
 import { WebSocketServer } from 'ws';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import os from 'os';
 
 // Import SQLite Database operations
 import { 
@@ -16,7 +17,8 @@ import {
     updateOrderStatus, 
     updateOrderPaymentStatus,
     createSupportAlert,
-    resolveSupportAlert
+    resolveSupportAlert,
+    sendChatMessage
 } from './database.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -188,6 +190,20 @@ app.put('/api/support-alerts/:alertId/resolve', async (req, res) => {
     }
 });
 
+// 11. Send chat message
+app.post('/api/chat-messages', async (req, res) => {
+    try {
+        const { restaurantId, tableNum, customerName, sender, message } = req.body;
+        const newMsg = await sendChatMessage(restaurantId, tableNum, customerName, sender, message);
+        
+        broadcast({ type: 'STATE_UPDATED' });
+        res.status(201).json(newMsg);
+    } catch (err) {
+        console.error('Error sending chat message:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // WebSocket Server Connections
 wss.on('connection', (ws) => {
     console.log('Client connected to WebSocket server');
@@ -208,9 +224,30 @@ wss.on('connection', (ws) => {
 
 // Initialize database before starting HTTP server
 initDatabase().then(() => {
-    server.listen(PORT, () => {
+    server.listen(PORT, '0.0.0.0', () => {
+        // Find local network IP address
+        let localIp = '127.0.0.1';
+        try {
+            const interfaces = os.networkInterfaces();
+            for (const devName in interfaces) {
+                const iface = interfaces[devName];
+                for (let i = 0; i < iface.length; i++) {
+                    const alias = iface[i];
+                    if (alias.family === 'IPv4' && alias.address !== '127.0.0.1' && !alias.internal) {
+                        localIp = alias.address;
+                        break;
+                    }
+                }
+                if (localIp !== '127.0.0.1') break;
+            }
+        } catch (e) {
+            console.error('Error fetching local network IP:', e);
+        }
+
         console.log(`\n======================================================`);
-        console.log(`Dine Direct SQLite server is running on http://localhost:${PORT}`);
+        console.log(`Dine Direct SQLite server is running and accessible:`);
+        console.log(`- Localhost:     http://localhost:${PORT}`);
+        console.log(`- Local Network:  http://${localIp}:${PORT}`);
         console.log(`======================================================\n`);
     });
 }).catch(err => {

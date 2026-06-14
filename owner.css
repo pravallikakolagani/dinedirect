@@ -145,3 +145,35 @@
         gap: 16px !important;
     }
 }
+
+/* Owner Support Chat Styles */
+.chat-thread-item.active {
+    background: #f1f5f9;
+    border-left: 4px solid #4f46e5;
+}
+.chat-thread-item:hover:not(.active) {
+    background: #f8fafc;
+}
+.chat-thread-item.unread {
+    background: rgba(79, 70, 229, 0.05);
+}
+.ping-dot {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    background: white;
+    border-radius: 50%;
+    margin-right: 4px;
+    animation: ping 1.5s infinite;
+}
+@keyframes ping {
+    0% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.5); opacity: 0.5; }
+    100% { transform: scale(1); opacity: 1; }
+}
+.chat-bubble-wrapper.right .chat-bubble {
+    border-bottom-right-radius: 2px !important;
+}
+.chat-bubble-wrapper.left .chat-bubble {
+    border-bottom-left-radius: 2px !important;
+}

@@ -9,6 +9,7 @@ const renderSidebar = (activePage) => {
             </div>
             <ul class="nav-links">
                 <li><a href="#owner/dashboard" class="${activePage === 'dashboard' ? 'active' : ''}"><i data-lucide="layout-dashboard"></i> Dashboard</a></li>
+                <li><a href="#owner/chats" class="${activePage === 'chats' ? 'active' : ''}"><i data-lucide="message-square"></i> Live Chats</a></li>
                 <li><a href="#owner/analytics" class="${activePage === 'analytics' ? 'active' : ''}"><i data-lucide="line-chart"></i> Analytics</a></li>
                 <li><a href="#owner/menu" class="${activePage === 'menu' ? 'active' : ''}"><i data-lucide="menu-square"></i> Manage Menu</a></li>
                 <li><a href="#owner/tables" class="${activePage === 'tables' ? 'active' : ''}"><i data-lucide="grid-2x2"></i> Tables & QR</a></li>
@@ -812,6 +813,227 @@ const OwnerViews = {
         if (btnPushNotify) {
             btnPushNotify.addEventListener('click', () => {
                 if (window.showToast) window.showToast('Broadcasted mock push notification to customers!');
+            });
+        }
+    },
+
+    chats: () => {
+        const session = window.DineDirectStore.getSession();
+        const restId = session.activeRestaurantId || 'r1';
+        const rest = window.DineDirectStore.getRestaurant(restId);
+        
+        if (!rest) return `<div>Restaurant not found. <a href="#auth">Log in again</a></div>`;
+
+        const chatMessages = window.DineDirectStore.state.chatMessages || [];
+        const supportAlerts = window.DineDirectStore.state.supportAlerts || [];
+        
+        // Find all unique tables that have chat messages or active alerts
+        const tablesWithAlerts = supportAlerts.filter(sa => sa.restaurantId === restId).map(sa => String(sa.tableNum));
+        const tablesWithChats = chatMessages.filter(cm => cm.restaurantId === restId).map(cm => String(cm.tableNum));
+        const allChatTables = [...new Set([...tablesWithAlerts, ...tablesWithChats])].sort((a,b) => a.localeCompare(b, undefined, {numeric: true}));
+
+        const selectedTable = window.selectedChatTable || null;
+
+        // Render the chat list in the left pane
+        const chatListHtml = allChatTables.map(tNum => {
+            const activeAlert = supportAlerts.find(sa => sa.restaurantId === restId && String(sa.tableNum) === String(tNum) && sa.status === 'active');
+            const tableMsgs = chatMessages.filter(cm => cm.restaurantId === restId && String(cm.tableNum) === String(tNum));
+            const latestMsg = tableMsgs[tableMsgs.length - 1];
+            const latestText = latestMsg ? latestMsg.message : '(No messages yet)';
+            
+            let customerName = 'Guest';
+            if (activeAlert) {
+                customerName = activeAlert.customerName;
+            } else if (latestMsg) {
+                customerName = latestMsg.customerName;
+            }
+
+            const isActive = selectedTable === tNum;
+            const isUnread = !isActive && latestMsg && latestMsg.sender === 'customer' && (!window.lastReadTimestamps || !window.lastReadTimestamps[tNum] || window.lastReadTimestamps[tNum] < latestMsg.timestamp);
+
+            return `
+                <div class="chat-thread-item ${isActive ? 'active' : ''} ${isUnread ? 'unread' : ''}" data-table="${tNum}" style="padding:14px 16px; border-bottom:1px solid #f1f5f9; cursor:pointer; position:relative; transition:background 0.2s;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                        <span style="font-weight:700; font-size:0.95rem; color:var(--text-main);">Table ${tNum}</span>
+                        ${activeAlert 
+                            ? `<span class="badge" style="background:#ef4444; color:white; font-size:0.65rem; font-weight:700; padding:2px 6px; border-radius:4px; display:inline-flex; align-items:center; gap:3px;"><span class="ping-dot"></span> LIVE HELP</span>`
+                            : `<span class="badge" style="background:#10b981; color:white; font-size:0.65rem; font-weight:700; padding:2px 6px; border-radius:4px;">RESOLVED</span>`
+                        }
+                    </div>
+                    <div style="font-size:0.8rem; font-weight:500; color:var(--text-muted); margin-bottom:4px;">Guest: ${customerName}</div>
+                    <div style="font-size:0.8rem; color:#64748b; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:180px;">
+                        ${latestText}
+                    </div>
+                    ${isUnread ? `<span style="position:absolute; right:16px; bottom:20px; width:8px; height:8px; background:#4f46e5; border-radius:50%;"></span>` : ''}
+                </div>
+            `;
+        }).join('');
+
+        // Render the chat feed on the right
+        let chatWindowHtml = '';
+        if (!selectedTable) {
+            chatWindowHtml = `
+                <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; color:#94a3b8; text-align:center; padding:40px;">
+                    <i data-lucide="message-square" style="width:64px; height:64px; opacity:0.3; margin-bottom:16px;"></i>
+                    <h3>No Chat Selected</h3>
+                    <p style="font-size:0.9rem; margin-top:6px; max-width:320px;">Select a table from the sidebar to view their direct chat messages and start communicating.</p>
+                </div>
+            `;
+        } else {
+            const activeAlert = supportAlerts.find(sa => sa.restaurantId === restId && String(sa.tableNum) === String(selectedTable) && sa.status === 'active');
+            const tableMsgs = chatMessages.filter(cm => cm.restaurantId === restId && String(cm.tableNum) === String(selectedTable));
+            
+            let customerName = 'Guest';
+            if (activeAlert) {
+                customerName = activeAlert.customerName;
+            } else if (tableMsgs.length > 0) {
+                customerName = tableMsgs[0].customerName;
+            }
+
+            const messagesHtml = tableMsgs.map(msg => {
+                const isManagement = msg.sender === 'management';
+                const time = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                return `
+                    <div class="chat-bubble-wrapper ${isManagement ? 'right' : 'left'}" style="display:flex; justify-content:${isManagement ? 'flex-end' : 'flex-start'}; margin-bottom:16px;">
+                        <div class="chat-bubble" style="max-width:70%; padding:10px 14px; border-radius:12px; font-size:0.9rem; background:${isManagement ? '#4f46e5' : '#f1f5f9'}; color:${isManagement ? 'white' : '#1e293b'}; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
+                            <div style="font-weight:bold; font-size:0.75rem; margin-bottom:2px; color:${isManagement ? 'rgba(255,255,255,0.8)' : 'var(--primary)'};">
+                                ${isManagement ? 'You (Management)' : 'Customer'}
+                            </div>
+                            <div style="word-break:break-word; line-height:1.4;">${msg.message}</div>
+                            <div style="font-size:0.65rem; text-align:right; margin-top:4px; opacity:0.7;">${time}</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            chatWindowHtml = `
+                <div style="display:flex; flex-direction:column; height:100%;">
+                    <!-- Chat Header -->
+                    <div style="display:flex; justify-content:space-between; align-items:center; padding:16px 20px; border-bottom:1px solid #e2e8f0; background:white;">
+                        <div>
+                            <h3 style="font-weight:700; color:var(--text-main);">Table ${selectedTable}</h3>
+                            <p style="font-size:0.8rem; color:var(--text-muted);">Guest: ${customerName}</p>
+                        </div>
+                        ${activeAlert 
+                            ? `<button class="btn btn-success resolve-chat-btn" data-alertid="${activeAlert.id}" style="background:#10b981; border:none; padding:8px 16px; font-size:0.85rem; display:inline-flex; align-items:center; gap:6px;">
+                                <i data-lucide="check-circle" style="width:16px; height:16px;"></i> Resolve Alert & End Chat
+                               </button>`
+                            : `<span style="font-size:0.85rem; font-weight:600; color:#10b981; display:inline-flex; align-items:center; gap:4px;"><i data-lucide="check" style="width:16px;height:16px;"></i> Chat Closed</span>`
+                        }
+                    </div>
+
+                    <!-- Messages Feed -->
+                    <div id="ownerChatMessages" style="flex:1; overflow-y:auto; padding:20px; background:#f8fafc;">
+                        ${messagesHtml.length === 0 ? `
+                            <div style="text-align:center; padding:40px; color:#94a3b8;">
+                                <p style="font-size:0.9rem;">No message history. Send a message to start chatting.</p>
+                            </div>
+                        ` : messagesHtml}
+                    </div>
+
+                    <!-- Input Area -->
+                    <form id="ownerChatInputForm" style="display:flex; gap:12px; padding:16px 20px; border-top:1px solid #e2e8f0; background:white;">
+                        <input type="text" id="ownerChatInputField" class="form-control" placeholder="Type a message to Table ${selectedTable}..." autocomplete="off" required style="flex:1;">
+                        <button type="submit" class="btn btn-primary" style="padding:10px 20px; display:inline-flex; align-items:center; justify-content:center;">
+                            <i data-lucide="send" style="width:16px; height:16px;"></i>
+                        </button>
+                    </form>
+                </div>
+            `;
+        }
+
+        return `
+            <div class="dashboard-layout fade-in">
+                ${renderSidebar('chats')}
+                
+                <main class="main-content" style="padding: 0; display:flex; height:100vh;">
+                    <!-- Left Sidebar Pane: Tables list -->
+                    <div style="width:280px; border-right:1px solid #e2e8f0; background:white; display:flex; flex-direction:column;">
+                        <div style="padding:20px; border-bottom:1px solid #e2e8f0;">
+                            <h2 style="font-size:1.25rem; font-weight:700; color:var(--text-main); display:flex; align-items:center; gap:8px;">
+                                <i data-lucide="message-square" style="color:var(--primary); width:20px; height:20px;"></i>
+                                Support Chats
+                            </h2>
+                            <p style="font-size:0.8rem; color:var(--text-muted); margin-top:2px;">Real-time table communications</p>
+                        </div>
+                        <div style="flex:1; overflow-y:auto;" id="ownerChatThreadsList">
+                            ${chatListHtml.length === 0 ? `
+                                <div style="text-align:center; padding:40px 20px; color:#94a3b8; font-size:0.85rem;">
+                                    No support requests or chat history yet.
+                                </div>
+                            ` : chatListHtml}
+                        </div>
+                    </div>
+
+                    <!-- Right Main Pane: Active chat thread -->
+                    <div style="flex:1; display:flex; flex-direction:column; background:#f8fafc;" id="ownerChatWindowContainer">
+                        ${chatWindowHtml}
+                    </div>
+                </main>
+            </div>
+        `;
+    },
+
+    setupChatsListeners: () => {
+        const session = window.DineDirectStore.getSession();
+        const restId = session.activeRestaurantId || 'r1';
+        const chatMessages = window.DineDirectStore.state.chatMessages || [];
+        
+        // Scroll selected chat feed to bottom
+        const msgFeed = document.getElementById('ownerChatMessages');
+        if (msgFeed) {
+            msgFeed.scrollTop = msgFeed.scrollHeight;
+        }
+
+        // Thread item selection click handler
+        const threadItems = document.querySelectorAll('#ownerChatThreadsList .chat-thread-item');
+        threadItems.forEach(item => {
+            item.addEventListener('click', () => {
+                const tNum = item.getAttribute('data-table');
+                window.selectedChatTable = tNum;
+                
+                // Mark messages as read
+                window.lastReadTimestamps = window.lastReadTimestamps || {};
+                const tableMsgs = chatMessages.filter(cm => cm.restaurantId === restId && String(cm.tableNum) === String(tNum));
+                if (tableMsgs.length > 0) {
+                    window.lastReadTimestamps[tNum] = tableMsgs[tableMsgs.length - 1].timestamp;
+                }
+                
+                // Re-render
+                if (window.Router) window.Router();
+            });
+        });
+
+        // Chat resolution
+        const resolveBtn = document.querySelector('.resolve-chat-btn');
+        if (resolveBtn) {
+            resolveBtn.addEventListener('click', async () => {
+                const alertId = resolveBtn.getAttribute('data-alertid');
+                if (confirm('Are you sure you want to resolve this alert and close the direct chat?')) {
+                    const resolved = await window.DineDirectStore.resolveSupportAlert(alertId);
+                    if (resolved) {
+                        if (window.showToast) window.showToast('Support alert resolved and chat closed.');
+                    }
+                }
+            });
+        }
+
+        // Message submission
+        const chatForm = document.getElementById('ownerChatInputForm');
+        if (chatForm) {
+            chatForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const field = document.getElementById('ownerChatInputField');
+                const text = field.value.trim();
+                if (!text) return;
+                field.value = '';
+
+                const tNum = window.selectedChatTable;
+                const supportAlerts = window.DineDirectStore.state.supportAlerts || [];
+                const activeAlert = supportAlerts.find(sa => sa.restaurantId === restId && String(sa.tableNum) === String(tNum) && sa.status === 'active');
+                const customerName = activeAlert ? activeAlert.customerName : 'Guest';
+
+                await window.DineDirectStore.sendChatMessage('management', text, tNum, customerName, restId);
             });
         }
     }

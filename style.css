@@ -466,3 +466,104 @@ h1, h2, h3, h4, h5, h6 {
     transform: translateX(4px);
 }
 
+/* GlassEffect Login Styles copied from screenshot */
+.auth-section .bg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.auth-section .trees {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    z-index: 100;
+    pointer-events: none;
+}
+
+.login .inputBox input {
+    position: relative;
+    width: 100%;
+    padding: 15px 20px !important;
+    outline: none;
+    font-size: 1.15rem !important;
+    color: #8f2c24 !important;
+    border-radius: 8px !important;
+    background: #fff !important;
+    border: none !important;
+    margin-bottom: 20px !important;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.05) !important;
+}
+
+.login .inputBox ::placeholder {
+    color: #8f2c24 !important;
+    opacity: 0.7;
+}
+
+.auth-form-side .logo-large {
+    background: linear-gradient(135deg, #8f2c24, #ff6b35) !important;
+    -webkit-background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+}
+
+.auth-form-side .btn-primary {
+    background-color: #8f2c24 !important;
+    border-color: #8f2c24 !important;
+    color: white !important;
+}
+
+.auth-form-side .btn-primary:hover {
+    background-color: #702019 !important;
+    border-color: #702019 !important;
+}
+
+.auth-form-side .toggle-btn.active {
+    background: linear-gradient(135deg, #8f2c24, #ff6b35) !important;
+    box-shadow: 0 4px 12px rgba(143, 44, 36, 0.3) !important;
+}
+
+/* Floating food animation styles */
+.floating-food {
+    transform-origin: center;
+    z-index: 6;
+}
+
+@keyframes food-drift {
+    0% {
+        transform: translateY(-50px) translateX(0) rotate(0deg) scale(0.9);
+        opacity: 0;
+    }
+    15% {
+        opacity: 0.45;
+    }
+    85% {
+        opacity: 0.45;
+    }
+    100% {
+        transform: translateY(105vh) translateX(100px) rotate(360deg) scale(1.15);
+        opacity: 0;
+    }
+}
+
+/* Cozy restaurant dark warm gradient for section background */
+.auth-section {
+    margin: 0;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: linear-gradient(135deg, #2b100d 0%, #1c0907 100%) !important;
+    position: relative;
+    overflow: hidden;
+}
+
+
+

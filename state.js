@@ -64,6 +64,7 @@ class DineDirectStateStore {
             restaurants: [],
             orders: [],
             supportAlerts: [],
+            chatMessages: [],
             session: {
                 userRole: null,
                 currentUser: null,
@@ -104,6 +105,7 @@ class DineDirectStateStore {
             this.state.restaurants = data.restaurants;
             this.state.orders = data.orders;
             this.state.supportAlerts = data.supportAlerts || [];
+            this.state.chatMessages = data.chatMessages || [];
             
             this._notify();
         } catch (err) {
@@ -332,6 +334,26 @@ class DineDirectStateStore {
         } catch (err) {
             console.error('Failed to resolve support alert', err);
             return false;
+        }
+    }
+
+    async sendChatMessage(sender, message, targetTable = null, targetCustomer = null, targetRestId = null) {
+        const session = this.getSession();
+        const restaurantId = targetRestId || session.activeRestaurantId || 'r1';
+        const tableNum = targetTable || session.activeTableNum || 'Online';
+        const customerName = targetCustomer || session.currentUser || 'Guest';
+
+        try {
+            const res = await fetch('/api/chat-messages', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ restaurantId, tableNum, customerName, sender, message })
+            });
+            const newMsg = await res.json();
+            return newMsg;
+        } catch (err) {
+            console.error('Failed to send chat message', err);
+            return null;
         }
     }
 

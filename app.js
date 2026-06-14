@@ -1,164 +1,201 @@
 // Dine Direct Application Router & Coordinator
 
+const startFloatingFood = () => {
+    const container = document.getElementById('food-container');
+    if (!container) return;
+    
+    container.innerHTML = '';
+    const foodItems = ['🍕', '🍔', '🌮', '🍜', '🍣', '🍰', '🍷', '🥐', '🍟', '🍩', '🥑', '🥩', '🍤', '☕'];
+    
+    for (let i = 0; i < 20; i++) {
+        const food = document.createElement('div');
+        food.className = 'floating-food';
+        food.textContent = foodItems[Math.floor(Math.random() * foodItems.length)];
+        
+        const size = Math.random() * 16 + 18; // 18px to 34px
+        const left = Math.random() * 100; // 0% to 100%
+        const delay = Math.random() * 10; // 0s to 10s
+        const duration = Math.random() * 8 + 8; // 8s to 16s
+        
+        food.style.cssText = `
+            position: absolute;
+            top: -40px;
+            left: ${left}%;
+            font-size: ${size}px;
+            opacity: ${Math.random() * 0.25 + 0.25};
+            filter: drop-shadow(0 4px 8px rgba(0,0,0,0.15)) blur(0.5px);
+            pointer-events: none;
+            animation: food-drift ${duration}s linear infinite;
+            animation-delay: ${delay}s;
+        `;
+        
+        container.appendChild(food);
+    }
+};
+
 const createAuthView = () => {
     const session = window.DineDirectStore.getSession();
     const tableNumText = session.activeTableNum ? ` at Table ${session.activeTableNum}` : '';
     return `
-        <div class="auth-wrapper animate-fade-in">
-            <!-- Glowing background blobs -->
-            <div class="bg-blob bg-blob-1"></div>
-            <div class="bg-blob bg-blob-2"></div>
-            <div class="bg-blob bg-blob-3"></div>
+        <section class="auth-section" style="position: relative; width: 100vw; height: 100vh; overflow: hidden;">
+            <!-- Background Image -->
+            <img src="images/restaurant_background.png" class="bg">
+            <!-- Floating food overlay container -->
+            <div id="food-container" style="position: absolute; top:0; left:0; width:100%; height:100%; overflow:hidden; pointer-events:none; z-index:5;"></div>
 
-            <div class="auth-card">
-                <!-- Left column: Marketing banner (Desktop) -->
-                <div class="auth-banner">
-                    <div>
-                        <h2 class="auth-banner-title">Scan. Order.<br>Savor.</h2>
-                        <ul class="auth-banner-features">
-                            <li><i data-lucide="zap"></i> Order instantly from your table</li>
-                            <li><i data-lucide="credit-card"></i> Pay securely via mock UPI / Card</li>
-                            <li><i data-lucide="chef-hat"></i> Track preparation stage live</li>
-                            <li><i data-lucide="check-circle"></i> Direct integration with Kitchen KDS</li>
-                        </ul>
-                    </div>
-                    <p class="text-muted" style="color:rgba(255,255,255,0.7) !important; font-size:0.85rem;">
-                        Dine Direct connects customers & kitchen workflows seamlessly.
-                    </p>
-                </div>
-
-                <!-- Right column: Interactive Form Pane -->
-                <div class="auth-form-side">
-                    <h1 class="logo-large mb-2">
-                        <i data-lucide="utensils-cross" style="color:var(--primary);"></i> Dine Direct
-                    </h1>
-                    <p class="text-muted mb-4" style="font-size:0.9rem; color:#94a3b8 !important;">
-                        Your entire dining ecosystem${tableNumText}
-                    </p>
-                    
-                    <div class="form-toggle mb-4" id="authRoleToggle">
-                        <div class="toggle-btn active" id="btnCustomer">
-                            <i data-lucide="user"></i> Customer
+            <div class="auth-wrapper animate-fade-in" style="z-index: 10; position: relative; background: none;">
+                <div class="auth-card" style="background: rgba(255, 255, 255, 0.15) !important; backdrop-filter: blur(15px) !important; -webkit-backdrop-filter: blur(15px) !important; border: 1.5px solid rgba(255, 255, 255, 0.25) !important; box-shadow: 0 20px 40px rgba(0,0,0,0.2) !important;">
+                    <!-- Left column: Marketing banner (Desktop) -->
+                    <div class="auth-banner" style="background: linear-gradient(135deg, rgba(143, 44, 36, 0.8), rgba(255, 107, 53, 0.8)); border-right: 1px solid rgba(255, 255, 255, 0.15);">
+                        <div>
+                            <h2 class="auth-banner-title">Scan. Order.<br>Savor.</h2>
+                            <ul class="auth-banner-features">
+                                <li><i data-lucide="zap"></i> Order instantly from your table</li>
+                                <li><i data-lucide="credit-card"></i> Pay securely via mock UPI / Card</li>
+                                <li><i data-lucide="chef-hat"></i> Track preparation stage live</li>
+                                <li><i data-lucide="check-circle"></i> Direct integration with Kitchen KDS</li>
+                            </ul>
                         </div>
-                        <div class="toggle-btn" id="btnOwner">
-                            <i data-lucide="store"></i> Owner
-                        </div>
-                    </div>
-
-                    <!-- Customer Step 1: Contact Form -->
-                    <form id="customerForm">
-                        <div class="form-group">
-                            <label style="color:#94a3b8; font-size:0.8rem;">Phone Number or Email</label>
-                            <input type="text" class="form-control" id="customerEmail" placeholder="Enter details to continue" required>
-                        </div>
-                        <button type="submit" class="btn btn-primary btn-block mb-3" style="box-shadow: 0 4px 12px rgba(255, 107, 53, 0.2);">
-                            <i data-lucide="arrow-right"></i> Continue
-                        </button>
-                        <div class="text-center">
-                            <button type="button" class="btn btn-outline-premium btn-block" id="btnGuestContinue">
-                                <i data-lucide="user-plus"></i> Continue as Guest
-                            </button>
-                        </div>
-                    </form>
-
-                    <!-- Customer Step 2: OTP & Name Form (Hidden by default) -->
-                    <form id="customerOtpForm" class="d-none animate-fade-in">
-                        <div class="form-group">
-                            <label style="color:#94a3b8; font-size:0.8rem;">Your Full Name</label>
-                            <input type="text" class="form-control" id="customerNameInput" placeholder="e.g. John Doe" required>
-                        </div>
-                        <div class="form-group">
-                            <label style="color:#94a3b8; font-size:0.8rem; display:block; margin-bottom:8px;">4-Digit OTP Code</label>
-                            <div style="display:flex; gap:12px; justify-content:space-between; margin-bottom:8px;">
-                                <input type="text" class="form-control otp-digit" maxlength="1" style="text-align:center; font-size:1.4rem; font-weight:bold; padding:10px 0 !important; width:54px; height:50px; background:#fff !important; border:1.5px solid #cbd5e1 !important; color:#1e293b !important;" required>
-                                <input type="text" class="form-control otp-digit" maxlength="1" style="text-align:center; font-size:1.4rem; font-weight:bold; padding:10px 0 !important; width:54px; height:50px; background:#fff !important; border:1.5px solid #cbd5e1 !important; color:#1e293b !important;" required disabled>
-                                <input type="text" class="form-control otp-digit" maxlength="1" style="text-align:center; font-size:1.4rem; font-weight:bold; padding:10px 0 !important; width:54px; height:50px; background:#fff !important; border:1.5px solid #cbd5e1 !important; color:#1e293b !important;" required disabled>
-                                <input type="text" class="form-control otp-digit" maxlength="1" style="text-align:center; font-size:1.4rem; font-weight:bold; padding:10px 0 !important; width:54px; height:50px; background:#fff !important; border:1.5px solid #cbd5e1 !important; color:#1e293b !important;" required disabled>
-                            </div>
-                            <p class="text-muted" style="font-size:0.75rem; text-align:left; color:#64748b !important;">
-                                Code sent to <strong id="otpSentTarget">user@example.com</strong>
-                            </p>
-                        </div>
-                        <button type="submit" class="btn btn-primary btn-block mb-3" style="box-shadow: 0 4px 12px rgba(255, 107, 53, 0.2);">
-                            <i data-lucide="shield-check"></i> Verify & Login
-                        </button>
-                        <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.85rem; padding-top:8px;">
-                            <a href="#" id="btnBackToLogin" style="color:#64748b; text-decoration:none; font-weight:500;">
-                                <i data-lucide="arrow-left" style="width:14px;height:14px;vertical-align:middle;margin-right:2px;"></i> Back
-                            </a>
-                            <a href="#" id="btnResendOtp" style="color:var(--primary); text-decoration:none; font-weight:600;">Resend OTP</a>
-                        </div>
-                    </form>
-
-                    <!-- Owner Form -->
-                    <form id="ownerForm" class="d-none">
-                        <div class="form-group">
-                            <label style="color:#94a3b8; font-size:0.8rem;">Business Email</label>
-                            <input type="email" class="form-control" id="ownerEmail" placeholder="restaurant@example.com" required>
-                        </div>
-                        <div class="form-group">
-                            <label style="color:#94a3b8; font-size:0.8rem;">Password</label>
-                            <input type="password" class="form-control" id="ownerPassword" placeholder="••••••••" required>
-                        </div>
-                        <button type="submit" class="btn btn-primary btn-block mb-3" style="box-shadow: 0 4px 12px rgba(255, 107, 53, 0.2);">
-                            <i data-lucide="building"></i> Owner Login
-                        </button>
-                        <p class="text-center">
-                            <a href="#owner/signup" class="text-muted" style="font-size:0.85rem; color:#94a3b8 !important;">
-                                Register new restaurant
-                            </a>
+                        <p class="text-muted" style="color:rgba(255,255,255,0.7) !important; font-size:0.85rem;">
+                            Dine Direct connects customers & kitchen workflows seamlessly.
                         </p>
-                    </form>
+                    </div>
+
+                    <!-- Right column: Interactive Form Pane -->
+                    <div class="auth-form-side">
+                        <h1 class="logo-large mb-2">
+                            <i data-lucide="utensils-cross" style="color:#8f2c24;"></i> Dine Direct
+                        </h1>
+                        <p class="text-muted mb-4" style="font-size:0.9rem; color:#8f2c24 !important; opacity:0.8; font-weight:600;">
+                            Your entire dining ecosystem${tableNumText}
+                        </p>
+                        
+                        <div class="form-toggle mb-4" id="authRoleToggle">
+                            <div class="toggle-btn active" id="btnCustomer">
+                                <i data-lucide="user"></i> Customer
+                            </div>
+                            <div class="toggle-btn" id="btnOwner">
+                                <i data-lucide="store"></i> Owner
+                            </div>
+                        </div>
+
+                        <!-- Customer Step 1: Contact Form -->
+                        <form id="customerForm" class="login">
+                            <div class="form-group inputBox">
+                                <label style="color:#8f2c24; font-size:0.8rem; font-weight:600;">Phone Number or Email</label>
+                                <input type="text" class="form-control" id="customerEmail" placeholder="Enter details to continue" required>
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-block mb-3" style="box-shadow: 0 4px 12px rgba(143, 44, 36, 0.3);">
+                                <i data-lucide="arrow-right"></i> Continue
+                            </button>
+                            <div class="text-center">
+                                <button type="button" class="btn btn-outline-premium btn-block" id="btnGuestContinue" style="color:#8f2c24; border-color:#8f2c24 !important;">
+                                    <i data-lucide="user-plus"></i> Continue as Guest
+                                </button>
+                            </div>
+                        </form>
+
+                        <!-- Customer Step 2: OTP & Name Form -->
+                        <form id="customerOtpForm" class="d-none animate-fade-in login">
+                            <div class="form-group inputBox">
+                                <label style="color:#8f2c24; font-size:0.8rem; font-weight:600;">Your Full Name</label>
+                                <input type="text" class="form-control" id="customerNameInput" placeholder="e.g. John Doe" required>
+                            </div>
+                            <div class="form-group">
+                                <label style="color:#8f2c24; font-size:0.8rem; display:block; margin-bottom:8px; font-weight:600;">4-Digit OTP Code</label>
+                                <div style="display:flex; gap:12px; justify-content:space-between; margin-bottom:8px;">
+                                    <input type="text" class="form-control otp-digit" maxlength="1" style="text-align:center; font-size:1.4rem; font-weight:bold; padding:10px 0 !important; width:54px; height:50px; background:#fff !important; border:1.5px solid #cbd5e1 !important; color:#1e293b !important;" required>
+                                    <input type="text" class="form-control otp-digit" maxlength="1" style="text-align:center; font-size:1.4rem; font-weight:bold; padding:10px 0 !important; width:54px; height:50px; background:#fff !important; border:1.5px solid #cbd5e1 !important; color:#1e293b !important;" required disabled>
+                                    <input type="text" class="form-control otp-digit" maxlength="1" style="text-align:center; font-size:1.4rem; font-weight:bold; padding:10px 0 !important; width:54px; height:50px; background:#fff !important; border:1.5px solid #cbd5e1 !important; color:#1e293b !important;" required disabled>
+                                    <input type="text" class="form-control otp-digit" maxlength="1" style="text-align:center; font-size:1.4rem; font-weight:bold; padding:10px 0 !important; width:54px; height:50px; background:#fff !important; border:1.5px solid #cbd5e1 !important; color:#1e293b !important;" required disabled>
+                                </div>
+                                <p class="text-muted" style="font-size:0.75rem; text-align:left; color:#8f2c24 !important; opacity:0.8;">
+                                    Code sent to <strong id="otpSentTarget">user@example.com</strong>
+                                </p>
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-block mb-3" style="box-shadow: 0 4px 12px rgba(143, 44, 36, 0.3);">
+                                <i data-lucide="shield-check"></i> Verify & Login
+                            </button>
+                            <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.85rem; padding-top:8px;">
+                                <a href="#" id="btnBackToLogin" style="color:#8f2c24; text-decoration:none; font-weight:600; opacity:0.8;">
+                                    <i data-lucide="arrow-left" style="width:14px;height:14px;vertical-align:middle;margin-right:2px;"></i> Back
+                                </a>
+                                <a href="#" id="btnResendOtp" style="color:#8f2c24; text-decoration:none; font-weight:700;">Resend OTP</a>
+                            </div>
+                        </form>
+
+                        <!-- Owner Form -->
+                        <form id="ownerForm" class="d-none login">
+                            <div class="form-group inputBox">
+                                <label style="color:#8f2c24; font-size:0.8rem; font-weight:600;">Business Email</label>
+                                <input type="email" class="form-control" id="ownerEmail" placeholder="restaurant@example.com" required>
+                            </div>
+                            <div class="form-group inputBox">
+                                <label style="color:#8f2c24; font-size:0.8rem; font-weight:600;">Password</label>
+                                <input type="password" class="form-control" id="ownerPassword" placeholder="••••••••" required>
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-block mb-3" style="box-shadow: 0 4px 12px rgba(143, 44, 36, 0.3);">
+                                <i data-lucide="building"></i> Owner Login
+                            </button>
+                            <p class="text-center">
+                                <a href="#owner/signup" style="font-size:0.85rem; color:#8f2c24 !important; font-weight:600; text-decoration:none;">
+                                    Register new restaurant
+                                </a>
+                            </p>
+                        </form>
+                    </div>
                 </div>
             </div>
-        </div>
+        </section>
     `;
 };
 
 const createOwnerSignupView = () => {
     return `
-        <div class="auth-wrapper animate-fade-in">
-            <!-- Glowing background blobs -->
-            <div class="bg-blob bg-blob-1"></div>
-            <div class="bg-blob bg-blob-2"></div>
-            <div class="bg-blob bg-blob-3"></div>
+        <section class="auth-section" style="position: relative; width: 100vw; height: 100vh; overflow: hidden;">
+            <!-- Background Image -->
+            <img src="images/restaurant_background.png" class="bg">
+            <!-- Floating food overlay container -->
+            <div id="food-container" style="position: absolute; top:0; left:0; width:100%; height:100%; overflow:hidden; pointer-events:none; z-index:5;"></div>
 
-            <div class="auth-card" style="max-width: 450px;">
-                <div class="auth-form-side" style="padding: 40px; background: rgba(30, 41, 59, 0.65);">
-                    <h1 class="logo-large mb-2" style="justify-content:center;">
-                        <i data-lucide="building" style="color:var(--primary);"></i> Onboard Business
-                    </h1>
-                    <p class="text-center text-muted mb-4" style="font-size:0.85rem; color:#94a3b8 !important;">
-                        Register your restaurant and print QR codes in minutes.
-                    </p>
-                    
-                    <form id="ownerSignupForm">
-                        <div class="form-group">
-                            <label style="color:#94a3b8; font-size:0.8rem;">Restaurant Name</label>
-                            <input type="text" id="signupRestName" class="form-control" placeholder="e.g. Paradise Biryani" required>
-                        </div>
-                        <div class="form-group">
-                            <label style="color:#94a3b8; font-size:0.8rem;">Business Email</label>
-                            <input type="email" id="signupEmail" class="form-control" placeholder="owner@paradise.com" required>
-                        </div>
-                        <div class="form-group">
-                            <label style="color:#94a3b8; font-size:0.8rem;">Address / Location</label>
-                            <input type="text" id="signupAddress" class="form-control" placeholder="e.g. Secunderabad" required>
-                        </div>
-                        <div class="form-group">
-                            <label style="color:#94a3b8; font-size:0.8rem;">Password</label>
-                            <input type="password" id="signupPassword" class="form-control" placeholder="••••••••" required>
-                        </div>
-                        <button type="submit" class="btn btn-primary btn-block mb-3" style="box-shadow: 0 4px 12px rgba(255, 107, 53, 0.2);">
-                            <i data-lucide="check-circle2"></i> Complete Onboarding
-                        </button>
-                        <p class="text-center" style="font-size:0.85rem;">
-                            <a href="#auth" class="text-muted" style="color:#94a3b8 !important;">Already have account? Login</a>
+            <div class="auth-wrapper animate-fade-in" style="z-index: 10; position: relative; background: none;">
+                <div class="auth-card" style="max-width: 450px; background: rgba(255, 255, 255, 0.15) !important; backdrop-filter: blur(15px) !important; -webkit-backdrop-filter: blur(15px) !important; border: 1.5px solid rgba(255, 255, 255, 0.25) !important; box-shadow: 0 20px 40px rgba(0,0,0,0.2) !important;">
+                    <div class="auth-form-side" style="padding: 40px;">
+                        <h1 class="logo-large mb-2" style="justify-content:center;">
+                            <i data-lucide="building" style="color:#8f2c24;"></i> Onboard Business
+                        </h1>
+                        <p class="text-center text-muted mb-4" style="font-size:0.85rem; color:#8f2c24 !important; opacity:0.8; font-weight:600;">
+                            Register your restaurant and print QR codes in minutes.
                         </p>
-                    </form>
+                        
+                        <form id="ownerSignupForm" class="login">
+                            <div class="form-group inputBox">
+                                <label style="color:#8f2c24; font-size:0.8rem; font-weight:600;">Restaurant Name</label>
+                                <input type="text" id="signupRestName" class="form-control" placeholder="e.g. Paradise Biryani" required>
+                            </div>
+                            <div class="form-group inputBox">
+                                <label style="color:#8f2c24; font-size:0.8rem; font-weight:600;">Business Email</label>
+                                <input type="email" id="signupEmail" class="form-control" placeholder="owner@paradise.com" required>
+                            </div>
+                            <div class="form-group inputBox">
+                                <label style="color:#8f2c24; font-size:0.8rem; font-weight:600;">Address / Location</label>
+                                <input type="text" id="signupAddress" class="form-control" placeholder="e.g. Secunderabad" required>
+                            </div>
+                            <div class="form-group inputBox">
+                                <label style="color:#8f2c24; font-size:0.8rem; font-weight:600;">Password</label>
+                                <input type="password" id="signupPassword" class="form-control" placeholder="••••••••" required>
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-block mb-3" style="box-shadow: 0 4px 12px rgba(143, 44, 36, 0.3);">
+                                <i data-lucide="check-circle2"></i> Complete Onboarding
+                            </button>
+                            <p class="text-center" style="font-size:0.85rem;">
+                                <a href="#auth" style="color:#8f2c24 !important; font-weight:600; text-decoration:none;">Already have account? Login</a>
+                            </p>
+                        </form>
+                    </div>
                 </div>
             </div>
-        </div>
+        </section>
     `;
 };
 
@@ -385,9 +422,11 @@ const Router = () => {
     if (route === '#auth') {
         appDiv.innerHTML = createAuthView();
         setupAuthListeners();
+        startFloatingFood();
     } else if (route === '#owner/signup') {
         appDiv.innerHTML = createOwnerSignupView();
         setupOwnerSignupListener();
+        startFloatingFood();
     } else if (route === '#customer/home') {
         appDiv.innerHTML = window.CustomerViews ? window.CustomerViews.home() : 'Loading...';
         if (window.CustomerViews && window.CustomerViews.setupHomeListeners) {
@@ -444,6 +483,11 @@ const Router = () => {
         if (window.OwnerViews && window.OwnerViews.setupAnalyticsListeners) {
             window.OwnerViews.setupAnalyticsListeners();
         }
+    } else if (route === '#owner/chats') {
+        appDiv.innerHTML = window.OwnerViews && window.OwnerViews.chats ? window.OwnerViews.chats() : 'Loading...';
+        if (window.OwnerViews && window.OwnerViews.setupChatsListeners) {
+            window.OwnerViews.setupChatsListeners();
+        }
     } else {
         // Default Fallback
         window.location.hash = '#auth';
@@ -464,6 +508,8 @@ const Router = () => {
 window.addEventListener('hashchange', Router);
 
 let prevActiveAlertsCount = 0;
+let prevChatMessagesCount = 0;
+let prevManagementChatsCount = 0;
 
 window.addEventListener('DOMContentLoaded', () => {
     // Register store subscription
@@ -473,15 +519,16 @@ window.addEventListener('DOMContentLoaded', () => {
             window.CustomerViews.ensureSupportChatbot();
         }
 
-        // Real-time notifications and audio chime for Owner
+        // Real-time notifications and audio chime
         const session = window.DineDirectStore.getSession();
         if (session && session.userRole === 'owner') {
             const restId = session.activeRestaurantId || 'r1';
+            
+            // 1. Support alert chimes
             const allAlerts = window.DineDirectStore.state.supportAlerts || [];
             const activeAlerts = allAlerts.filter(sa => sa.restaurantId === restId && sa.status === 'active');
             
             if (activeAlerts.length > prevActiveAlertsCount) {
-                // Play soft notification double-beep
                 try {
                     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
                     const playBeep = (freq, duration, delay) => {
@@ -503,15 +550,85 @@ window.addEventListener('DOMContentLoaded', () => {
                     console.error('AudioContext notification sound failed', e);
                 }
 
-                // Show toast alert
                 const newAlert = activeAlerts[activeAlerts.length - 1];
                 if (window.showToast) {
                     window.showToast(`🚨 HELP REQUEST: Table ${newAlert.tableNum} needs help: "${newAlert.message}"`);
                 }
             }
             prevActiveAlertsCount = activeAlerts.length;
+
+            // 2. Chat messages chimes for Owner
+            const chatMessages = window.DineDirectStore.state.chatMessages || [];
+            const customerChats = chatMessages.filter(cm => cm.restaurantId === restId && cm.sender === 'customer');
+            
+            if (customerChats.length > prevChatMessagesCount) {
+                try {
+                    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                    const playBeep = (freq, duration, delay) => {
+                        setTimeout(() => {
+                            const osc = audioCtx.createOscillator();
+                            const gain = audioCtx.createGain();
+                            osc.connect(gain);
+                            gain.connect(audioCtx.destination);
+                            osc.frequency.value = freq;
+                            gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+                            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+                            osc.start();
+                            osc.stop(audioCtx.currentTime + duration);
+                        }, delay);
+                    };
+                    playBeep(600, 0.15, 0);
+                } catch (e) {
+                    console.error('AudioContext notification sound failed', e);
+                }
+
+                const newMsg = customerChats[customerChats.length - 1];
+                if (window.showToast) {
+                    window.showToast(`💬 Table ${newMsg.tableNum}: "${newMsg.message}"`);
+                }
+            }
+            prevChatMessagesCount = customerChats.length;
+        } else if (session && session.userRole === 'customer') {
+            prevActiveAlertsCount = 0;
+            prevChatMessagesCount = 0;
+
+            const restId = session.activeRestaurantId || 'r1';
+            const tableNum = session.activeTableNum || 'Online';
+            const chatMessages = window.DineDirectStore.state.chatMessages || [];
+            const managementChats = chatMessages.filter(cm => cm.restaurantId === restId && String(cm.tableNum) === String(tableNum) && cm.sender === 'management');
+            
+            if (managementChats.length > prevManagementChatsCount) {
+                try {
+                    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                    const playBeep = (freq, duration, delay) => {
+                        setTimeout(() => {
+                            const osc = audioCtx.createOscillator();
+                            const gain = audioCtx.createGain();
+                            osc.connect(gain);
+                            gain.connect(audioCtx.destination);
+                            osc.frequency.value = freq;
+                            gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+                            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+                            osc.start();
+                            osc.stop(audioCtx.currentTime + duration);
+                        }, delay);
+                    };
+                    playBeep(988, 0.15, 0);
+                } catch (e) {
+                    console.error('AudioContext notification sound failed', e);
+                }
+
+                const badge = document.getElementById('aiChatBadge');
+                if (badge && document.getElementById('aiChatWindow').classList.contains('d-none')) {
+                    badge.textContent = '💬';
+                    badge.classList.remove('d-none');
+                }
+            }
+            prevManagementChatsCount = managementChats.length;
         } else {
             prevActiveAlertsCount = 0;
+            prevChatMessagesCount = 0;
+            prevManagementChatsCount = 0;
         }
 
         // Skip full routing re-render if we have active modal inputs or popup opened
@@ -520,9 +637,13 @@ window.addEventListener('DOMContentLoaded', () => {
             return;
         }
         
-        // Also skip if owner is actively typing in menu forms
+        // Also skip if owner is actively typing in menu forms or chat inputs
         const menuForm = document.getElementById('addItemForm');
-        if (menuForm && document.activeElement && menuForm.contains(document.activeElement)) {
+        const chatForm = document.getElementById('ownerChatInputForm');
+        if (
+            (menuForm && document.activeElement && menuForm.contains(document.activeElement)) ||
+            (chatForm && document.activeElement && chatForm.contains(document.activeElement))
+        ) {
             return;
         }
 
