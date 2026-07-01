@@ -13,21 +13,30 @@ import {
     addMenuItem, 
     deleteMenuItem, 
     addTable, 
+    updateTableStatus,
     placeOrder, 
     updateOrderStatus, 
     updateOrderPaymentStatus,
     createSupportAlert,
     resolveSupportAlert,
-    sendChatMessage
+    sendChatMessage,
+    updateRestaurantSetup,
+    updateTableReservationStatus
 } from './database.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
 const app = express();
 app.use(express.json());
+
+// Request logging middleware
+app.use((req, res, next) => {
+    console.log(`[HTTP] ${req.method} ${req.url}`);
+    next();
+});
 
 // Serve static frontend files
 app.use(express.static(__dirname));
@@ -118,6 +127,51 @@ app.post('/api/tables', async (req, res) => {
     }
 });
 
+// 5.b Update dining table status
+app.put('/api/tables/:restId/:tableNum/status', async (req, res) => {
+    try {
+        const { restId, tableNum } = req.params;
+        const { status } = req.body;
+        await updateTableStatus(restId, tableNum, status);
+        
+        broadcast({ type: 'STATE_UPDATED' });
+        res.json({ success: true });
+    } catch (err) {
+        console.error('Error updating table status:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// 5.c Update dining table reservation status
+app.put('/api/tables/:restId/:tableNum/reservable', async (req, res) => {
+    try {
+        const { restId, tableNum } = req.params;
+        const { isReservable } = req.body;
+        await updateTableReservationStatus(restId, tableNum, isReservable);
+        
+        broadcast({ type: 'STATE_UPDATED' });
+        res.json({ success: true });
+    } catch (err) {
+        console.error('Error updating table reservation status:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// 5.d Update restaurant setup details
+app.put('/api/restaurants/:id/setup', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const details = req.body;
+        await updateRestaurantSetup(id, details);
+        
+        broadcast({ type: 'STATE_UPDATED' });
+        res.json({ success: true });
+    } catch (err) {
+        console.error('Error updating restaurant setup:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // 6. Place order
 app.post('/api/orders', async (req, res) => {
     try {
@@ -204,6 +258,30 @@ app.post('/api/chat-messages', async (req, res) => {
     }
 });
 
+// Catch-all route to redirect direct page requests (without hash) to their hash-based equivalent
+app.get('/customer/restaurant/:restId', (req, res) => {
+    return res.redirect(`/#customer/restaurant/${req.params.restId}`);
+});
+
+app.get('/:role/:page', (req, res, next) => {
+    const { role, page } = req.params;
+    if (['customer', 'owner'].includes(role)) {
+        return res.redirect(`/#${role}/${page}`);
+    }
+    next();
+});
+
+app.get('/:role', (req, res, next) => {
+    const { role } = req.params;
+    if (role === 'customer') {
+        return res.redirect('/#customer/home');
+    } else if (role === 'owner') {
+        return res.redirect('/#owner/dashboard');
+    }
+    next();
+});
+
+
 // WebSocket Server Connections
 wss.on('connection', (ws) => {
     console.log('Client connected to WebSocket server');
@@ -224,7 +302,7 @@ wss.on('connection', (ws) => {
 
 // Initialize database before starting HTTP server
 initDatabase().then(() => {
-    server.listen(PORT, '0.0.0.0', () => {
+    server.listen(PORT, () => {
         // Find local network IP address
         let localIp = '127.0.0.1';
         try {

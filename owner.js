@@ -13,6 +13,7 @@ const renderSidebar = (activePage) => {
                 <li><a href="#owner/analytics" class="${activePage === 'analytics' ? 'active' : ''}"><i data-lucide="line-chart"></i> Analytics</a></li>
                 <li><a href="#owner/menu" class="${activePage === 'menu' ? 'active' : ''}"><i data-lucide="menu-square"></i> Manage Menu</a></li>
                 <li><a href="#owner/tables" class="${activePage === 'tables' ? 'active' : ''}"><i data-lucide="grid-2x2"></i> Tables & QR</a></li>
+                <li><a href="#owner/setup" class="${activePage === 'setup' ? 'active' : ''}"><i data-lucide="settings"></i> Restaurant Setup</a></li>
                 <li><a href="#owner/kds" class="${activePage === 'kds' ? 'active' : ''}"><i data-lucide="chef-hat"></i> Kitchen (KDS)</a></li>
                 <li><a href="#auth" class="text-danger mt-4" onclick="window.DineDirectStore.logout()"><i data-lucide="log-out"></i> Log Out</a></li>
             </ul>
@@ -1034,6 +1035,353 @@ const OwnerViews = {
                 const customerName = activeAlert ? activeAlert.customerName : 'Guest';
 
                 await window.DineDirectStore.sendChatMessage('management', text, tNum, customerName, restId);
+            });
+        }
+    },
+
+    // 5. Restaurant Setup Page
+    setup: () => {
+        const session = window.DineDirectStore.getSession();
+        const restId = session.activeRestaurantId || 'r1';
+        const rest = window.DineDirectStore.getRestaurant(restId);
+        
+        if (!rest) return `<div>Restaurant not found. <a href="#auth">Log in again</a></div>`;
+
+        let ambienceList = [];
+        try {
+            ambienceList = typeof rest.ambience === 'string' ? JSON.parse(rest.ambience) : (rest.ambience || []);
+        } catch (e) {
+            console.error('Error parsing ambience:', e);
+        }
+
+        const tables = window.DineDirectStore.getTables(restId);
+        const activeTab = window.activeSetupTab || 'info';
+
+        return `
+            <div class="dashboard-layout fade-in">
+                ${renderSidebar('setup')}
+                
+                <main class="main-content">
+                    <header class="top-nav">
+                        <div>
+                            <h2>Restaurant Setup</h2>
+                            <p class="text-muted" style="font-size:0.9rem;">Configure restaurant details, ambience tour, and table booking policies</p>
+                        </div>
+                    </header>
+
+                    <div style="display:flex; border-bottom:2px solid #e2e8f0; margin-bottom:24px; gap:24px; overflow-x:auto;">
+                        <button class="setup-tab-btn ${activeTab === 'info' ? 'active' : ''}" data-tab="info" style="background:none; border:none; padding:12px 4px; font-weight:600; color:${activeTab === 'info' ? 'var(--primary)' : 'var(--text-muted)'}; border-bottom:${activeTab === 'info' ? '3px solid var(--primary)' : 'none'}; cursor:pointer; font-family:var(--font-heading); font-size:1.05rem; white-space:nowrap;">
+                            Details & Info
+                        </button>
+                        <button class="setup-tab-btn ${activeTab === 'ambience' ? 'active' : ''}" data-tab="ambience" style="background:none; border:none; padding:12px 4px; font-weight:600; color:${activeTab === 'ambience' ? 'var(--primary)' : 'var(--text-muted)'}; border-bottom:${activeTab === 'ambience' ? '3px solid var(--primary)' : 'none'}; cursor:pointer; font-family:var(--font-heading); font-size:1.05rem; white-space:nowrap;">
+                            Ambience Gallery
+                        </button>
+                        <button class="setup-tab-btn ${activeTab === 'tables' ? 'active' : ''}" data-tab="tables" style="background:none; border:none; padding:12px 4px; font-weight:600; color:${activeTab === 'tables' ? 'var(--primary)' : 'var(--text-muted)'}; border-bottom:${activeTab === 'tables' ? '3px solid var(--primary)' : 'none'}; cursor:pointer; font-family:var(--font-heading); font-size:1.05rem; white-space:nowrap;">
+                            Table Booking Settings
+                        </button>
+                    </div>
+
+                    <div class="setup-tab-content">
+                        ${activeTab === 'info' ? `
+                            <div class="card fade-in" style="max-width:650px; box-shadow:0 4px 6px -1px rgba(0,0,0,0.05);">
+                                <h3 style="margin-bottom:20px; font-size:1.25rem;">Edit Restaurant Profile</h3>
+                                <form id="restaurantInfoForm">
+                                    <div class="form-group" style="margin-bottom:16px;">
+                                        <label style="display:block; margin-bottom:6px; font-weight:600;">Restaurant Name</label>
+                                        <input type="text" class="form-control" id="setupRestName" value="${rest.name || ''}" required style="width:100%; padding:10px; border-radius:8px; border:1px solid #ddd;">
+                                    </div>
+                                    <div class="form-group" style="margin-bottom:16px;">
+                                        <label style="display:block; margin-bottom:6px; font-weight:600;">Cuisines (comma separated)</label>
+                                        <input type="text" class="form-control" id="setupRestCuisines" value="${rest.cuisines || ''}" placeholder="e.g. Biryani, Mughlai, North Indian" style="width:100%; padding:10px; border-radius:8px; border:1px solid #ddd;">
+                                    </div>
+                                    <div class="form-group" style="margin-bottom:16px;">
+                                        <label style="display:block; margin-bottom:6px; font-weight:600;">Full Address</label>
+                                        <input type="text" class="form-control" id="setupRestAddress" value="${rest.address || ''}" required style="width:100%; padding:10px; border-radius:8px; border:1px solid #ddd;">
+                                    </div>
+                                    <div class="form-group" style="margin-bottom:16px;">
+                                        <label style="display:block; margin-bottom:6px; font-weight:600;">Description</label>
+                                        <textarea class="form-control" id="setupRestDesc" rows="4" style="width:100%; padding:10px; border-radius:8px; border:1px solid #ddd; resize:none;" placeholder="Tell guests about your restaurant, chef, specialties...">${rest.description || ''}</textarea>
+                                    </div>
+                                    <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:16px; margin-bottom:24px;">
+                                        <div class="form-group">
+                                            <label style="display:block; margin-bottom:6px; font-weight:600;">Rating</label>
+                                            <input type="text" class="form-control" id="setupRestRating" value="${rest.rating || '4.0'}" style="width:100%; padding:10px; border-radius:8px; border:1px solid #ddd;">
+                                        </div>
+                                        <div class="form-group">
+                                            <label style="display:block; margin-bottom:6px; font-weight:600;">Delivery Speed</label>
+                                            <input type="text" class="form-control" id="setupRestTime" value="${rest.deliveryTime || '20-30 min'}" style="width:100%; padding:10px; border-radius:8px; border:1px solid #ddd;">
+                                        </div>
+                                        <div class="form-group">
+                                            <label style="display:block; margin-bottom:6px; font-weight:600;">Delivery Fee</label>
+                                            <input type="text" class="form-control" id="setupRestFee" value="${rest.deliveryFee || 'Free Delivery'}" style="width:100%; padding:10px; border-radius:8px; border:1px solid #ddd;">
+                                        </div>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary" style="width:100%;">Save Details</button>
+                                </form>
+                            </div>
+                        ` : ''}
+
+                        ${activeTab === 'ambience' ? `
+                            <div style="display:grid; grid-template-columns: 1fr 1.5fr; gap:24px; align-items:start;">
+                                <div class="card" style="box-shadow:0 4px 6px -1px rgba(0,0,0,0.05);">
+                                    <h3 style="margin-bottom:16px; font-size:1.2rem;">Add Ambience Tour Photo</h3>
+                                    <form id="addAmbienceForm">
+                                        <div class="form-group" style="margin-bottom:16px;">
+                                            <label style="display:block; margin-bottom:6px; font-weight:600;">Photo Label / Area Name</label>
+                                            <input type="text" class="form-control" id="ambienceLabel" placeholder="e.g. Dining Hall, Rooftop Garden" required style="width:100%; padding:10px; border-radius:8px; border:1px solid #ddd;">
+                                        </div>
+                                        <div class="form-group" style="margin-bottom:16px;">
+                                            <label style="display:block; margin-bottom:6px; font-weight:600;">Image URL</label>
+                                            <input type="url" class="form-control" id="ambienceUrl" placeholder="https://images.unsplash.com/..." required style="width:100%; padding:10px; border-radius:8px; border:1px solid #ddd;">
+                                        </div>
+                                        <button type="submit" class="btn btn-primary" style="width:100%;">Add to Gallery</button>
+                                    </form>
+                                </div>
+
+                                <div class="card" style="box-shadow:0 4px 6px -1px rgba(0,0,0,0.05);">
+                                    <h3 style="margin-bottom:16px; font-size:1.2rem;">Gallery Preview (${ambienceList.length})</h3>
+                                    ${ambienceList.length === 0 ? `
+                                        <div class="empty-state" style="padding:20px;">
+                                            <i data-lucide="image" style="width:40px; height:40px; opacity:0.3; margin-bottom:12px;"></i>
+                                            <p style="font-size:0.9rem;">No custom ambience images uploaded. Default placeholders will be shown to customers.</p>
+                                        </div>
+                                    ` : `
+                                        <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap:16px;">
+                                            ${ambienceList.map((img, idx) => `
+                                                <div style="border:1px solid #eee; border-radius:12px; overflow:hidden; position:relative; display:flex; flex-direction:column; background:white;">
+                                                    <img src="${img.url}" alt="${img.label}" style="width:100%; height:120px; object-fit:cover; background:#fafafa;">
+                                                    <div style="padding:8px; flex:1; display:flex; flex-direction:column; justify-content:space-between; gap:8px;">
+                                                        <span style="font-size:0.8rem; font-weight:600; color:var(--text-main); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${img.label}</span>
+                                                        <button class="btn delete-ambience-btn" data-index="${idx}" style="padding:4px 8px; font-size:0.75rem; background:rgba(231,76,60,0.1); color:var(--danger); border:none; width:100%; display:inline-flex; align-items:center; justify-content:center; gap:4px;">
+                                                            <i data-lucide="trash-2" style="width:12px; height:12px;"></i> Remove
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            `).join('')}
+                                        </div>
+                                    `}
+                                </div>
+                            </div>
+                        ` : ''}
+
+                        ${activeTab === 'tables' ? `
+                            <div style="display:grid; grid-template-columns: 1.5fr 1fr; gap:24px; align-items:start;">
+                                <div class="card" style="box-shadow:0 4px 6px -1px rgba(0,0,0,0.05);">
+                                    <h3 style="margin-bottom:16px; font-size:1.2rem;">Table Directory & Booking Toggles</h3>
+                                    <p class="text-muted" style="font-size:0.85rem; margin-top:-8px; margin-bottom:16px;">
+                                        Define which tables can be booked by customers online vs. walk-in/service only tables.
+                                    </p>
+                                    
+                                    <div style="overflow-x:auto;">
+                                        <table style="width:100%; border-collapse:collapse; text-align:left; font-size:0.9rem;">
+                                            <thead>
+                                                <tr style="border-bottom:2px solid #eee; color:var(--text-muted);">
+                                                    <th style="padding:10px 8px;">Table Number</th>
+                                                    <th style="padding:10px 8px;">Current Status</th>
+                                                    <th style="padding:10px 8px;">Reservation Policy</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                ${tables.map(table => {
+                                                    const isReservable = table.isReservable !== 0;
+                                                    return `
+                                                        <tr style="border-bottom:1px solid #f0f0f0;">
+                                                            <td style="padding:12px 8px; font-weight:bold;">Table ${table.num}</td>
+                                                            <td style="padding:12px 8px;">
+                                                                <span class="badge ${table.status === 'occupied' ? 'bg-danger' : 'bg-success'}" style="padding:4px 8px; border-radius:6px; font-size:0.75rem;">
+                                                                    ${table.status}
+                                                                </span>
+                                                            </td>
+                                                            <td style="padding:12px 8px;">
+                                                                <label style="position:relative; display:inline-flex; align-items:center; gap:8px; cursor:pointer; font-weight:500;">
+                                                                    <input type="checkbox" class="table-reservable-toggle" data-num="${table.num}" ${isReservable ? 'checked' : ''} style="cursor:pointer; width:16px; height:16px; accent-color:var(--primary);">
+                                                                    <span>${isReservable ? 'Online Booking Allowed' : 'Walk-in / Service Only'}</span>
+                                                                </label>
+                                                            </td>
+                                                        </tr>
+                                                    `;
+                                                }).join('')}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+
+                                <div class="card" style="box-shadow:0 4px 6px -1px rgba(0,0,0,0.05);">
+                                    <h3 style="margin-bottom:16px; font-size:1.2rem;">Quick Add Dining Table</h3>
+                                    <form id="setupAddTableForm">
+                                        <div class="form-group" style="margin-bottom:16px;">
+                                            <label style="display:block; margin-bottom:6px; font-weight:600;">Table Number / ID</label>
+                                            <input type="number" class="form-control" id="setupTableNumInput" placeholder="e.g. 5" min="1" max="100" required style="width:100%; padding:10px; border-radius:8px; border:1px solid #ddd;">
+                                        </div>
+                                        <button type="submit" class="btn btn-primary" style="width:100%;">Add Table</button>
+                                    </form>
+                                </div>
+                            </div>
+                        ` : ''}
+                    </div>
+                </main>
+            </div>
+        `;
+    },
+
+    setupSetupListeners: () => {
+        const session = window.DineDirectStore.getSession();
+        const restId = session.activeRestaurantId || 'r1';
+        const rest = window.DineDirectStore.getRestaurant(restId);
+
+        if (!rest) return;
+
+        let ambienceList = [];
+        try {
+            ambienceList = typeof rest.ambience === 'string' ? JSON.parse(rest.ambience) : (rest.ambience || []);
+        } catch (e) {
+            console.error('Error parsing ambience:', e);
+        }
+
+        // Tab switches
+        document.querySelectorAll('.setup-tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const targetTab = btn.getAttribute('data-tab');
+                window.activeSetupTab = targetTab;
+                if (window.Router) window.Router();
+            });
+        });
+
+        // Form 1: Save Details & Info
+        const infoForm = document.getElementById('restaurantInfoForm');
+        if (infoForm) {
+            infoForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const details = {
+                    name: document.getElementById('setupRestName').value,
+                    cuisines: document.getElementById('setupRestCuisines').value,
+                    address: document.getElementById('setupRestAddress').value,
+                    description: document.getElementById('setupRestDesc').value,
+                    rating: document.getElementById('setupRestRating').value,
+                    deliveryTime: document.getElementById('setupRestTime').value,
+                    deliveryFee: document.getElementById('setupRestFee').value,
+                    ambience: ambienceList
+                };
+
+                const res = await fetch(`/api/restaurants/${restId}/setup`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(details)
+                });
+                
+                if (res.ok) {
+                    if (window.showToast) window.showToast('Restaurant profile saved successfully!');
+                } else {
+                    alert('Error saving details');
+                }
+            });
+        }
+
+        // Form 2: Add Ambience Image
+        const ambienceForm = document.getElementById('addAmbienceForm');
+        if (ambienceForm) {
+            ambienceForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const label = document.getElementById('ambienceLabel').value.trim();
+                const url = document.getElementById('ambienceUrl').value.trim();
+
+                ambienceList.push({ label, url });
+
+                const details = {
+                    name: rest.name,
+                    cuisines: rest.cuisines,
+                    address: rest.address,
+                    description: rest.description,
+                    rating: rest.rating,
+                    deliveryTime: rest.deliveryTime,
+                    deliveryFee: rest.deliveryFee,
+                    ambience: ambienceList
+                };
+
+                const res = await fetch(`/api/restaurants/${restId}/setup`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(details)
+                });
+
+                if (res.ok) {
+                    ambienceForm.reset();
+                    if (window.showToast) window.showToast('Ambience image added!');
+                } else {
+                    alert('Error adding ambience image');
+                }
+            });
+        }
+
+        // Delete Ambience Image
+        document.querySelectorAll('.delete-ambience-btn').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const idx = parseInt(btn.getAttribute('data-index'), 10);
+                if (confirm('Remove this image from your ambience gallery?')) {
+                    ambienceList.splice(idx, 1);
+
+                    const details = {
+                        name: rest.name,
+                        cuisines: rest.cuisines,
+                        address: rest.address,
+                        description: rest.description,
+                        rating: rest.rating,
+                        deliveryTime: rest.deliveryTime,
+                        deliveryFee: rest.deliveryFee,
+                        ambience: ambienceList
+                    };
+
+                    const res = await fetch(`/api/restaurants/${restId}/setup`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(details)
+                    });
+
+                    if (res.ok) {
+                        if (window.showToast) window.showToast('Ambience image removed.');
+                    } else {
+                        alert('Error removing image');
+                    }
+                }
+            });
+        });
+
+        // Toggle Table Reservable Status
+        document.querySelectorAll('.table-reservable-toggle').forEach(chk => {
+            chk.addEventListener('change', async () => {
+                const tableNum = chk.getAttribute('data-num');
+                const isReservable = chk.checked;
+
+                const res = await fetch(`/api/tables/${restId}/${tableNum}/reservable`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ isReservable })
+                });
+
+                if (res.ok) {
+                    if (window.showToast) window.showToast(`Table ${tableNum} booking policy updated!`);
+                } else {
+                    alert('Failed to update table policy.');
+                    chk.checked = !isReservable; // revert
+                }
+            });
+        });
+
+        // Form 3: Quick Add Table
+        const setupAddTableForm = document.getElementById('setupAddTableForm');
+        if (setupAddTableForm) {
+            setupAddTableForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const num = document.getElementById('setupTableNumInput').value;
+                const added = await window.DineDirectStore.addTable(restId, num);
+                
+                setupAddTableForm.reset();
+
+                if (added) {
+                    if (window.showToast) window.showToast(`Table ${num} added successfully!`);
+                } else {
+                    alert('Table number already exists.');
+                }
             });
         }
     }

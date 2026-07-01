@@ -448,6 +448,11 @@ const Router = () => {
         if (window.CustomerViews && window.CustomerViews.setupCartListeners) {
             window.CustomerViews.setupCartListeners();
         }
+    } else if (route === '#customer/booking') {
+        appDiv.innerHTML = window.CustomerViews && window.CustomerViews.booking ? window.CustomerViews.booking() : 'Loading...';
+        if (window.CustomerViews && window.CustomerViews.setupBookingListeners) {
+            window.CustomerViews.setupBookingListeners();
+        }
     } else if (route === '#customer/tracking') {
         appDiv.innerHTML = window.CustomerViews ? window.CustomerViews.tracking() : 'Loading...';
         if (window.CustomerViews && window.CustomerViews.setupTrackingListeners) {
@@ -472,6 +477,11 @@ const Router = () => {
         appDiv.innerHTML = window.OwnerViews ? window.OwnerViews.tables() : 'Loading...';
         if (window.OwnerViews && window.OwnerViews.setupTablesListeners) {
             window.OwnerViews.setupTablesListeners();
+        }
+    } else if (route === '#owner/setup') {
+        appDiv.innerHTML = window.OwnerViews && window.OwnerViews.setup ? window.OwnerViews.setup() : 'Loading...';
+        if (window.OwnerViews && window.OwnerViews.setupSetupListeners) {
+            window.OwnerViews.setupSetupListeners();
         }
     } else if (route === '#owner/kds') {
         appDiv.innerHTML = window.OwnerViews && window.OwnerViews.kds ? window.OwnerViews.kds() : 'Loading...';
@@ -511,7 +521,7 @@ let prevActiveAlertsCount = 0;
 let prevChatMessagesCount = 0;
 let prevManagementChatsCount = 0;
 
-window.addEventListener('DOMContentLoaded', () => {
+const init = () => {
     // Register store subscription
     window.DineDirectStore.subscribe(() => {
         // Always check chatbot updates (e.g. for resolved alerts notifications)
@@ -637,16 +647,28 @@ window.addEventListener('DOMContentLoaded', () => {
             return;
         }
         
-        // Also skip if owner is actively typing in menu forms or chat inputs
+        // Also skip if owner is actively typing in menu forms, chat inputs, or setup forms
         const menuForm = document.getElementById('addItemForm');
         const chatForm = document.getElementById('ownerChatInputForm');
+        const infoForm = document.getElementById('restaurantInfoForm');
+        const ambForm = document.getElementById('addAmbienceForm');
+        const tabForm = document.getElementById('setupAddTableForm');
         if (
             (menuForm && document.activeElement && menuForm.contains(document.activeElement)) ||
-            (chatForm && document.activeElement && chatForm.contains(document.activeElement))
+            (chatForm && document.activeElement && chatForm.contains(document.activeElement)) ||
+            (infoForm && document.activeElement && infoForm.contains(document.activeElement)) ||
+            (ambForm && document.activeElement && ambForm.contains(document.activeElement)) ||
+            (tabForm && document.activeElement && tabForm.contains(document.activeElement))
         ) {
             return;
         }
 
         Router();
     });
-});
+};
+
+if (document.readyState === 'loading') {
+    window.addEventListener('DOMContentLoaded', init);
+} else {
+    init();
+}

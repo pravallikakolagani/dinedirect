@@ -2,11 +2,22 @@ import sqlite3 from 'sqlite3';
 import { open } from 'sqlite';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import fs from 'fs';
  
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const DB_FILE = path.join(__dirname, 'dinedirect.db');
+const DB_FILE = process.env.DATABASE_PATH || path.join(__dirname, 'dinedirect.db');
  
+// Ensure database directory exists
+try {
+    const dbDir = path.dirname(DB_FILE);
+    if (!fs.existsSync(dbDir)) {
+        fs.mkdirSync(dbDir, { recursive: true });
+    }
+} catch (e) {
+    console.error('Error creating database directory:', e);
+}
+
 let db;
  
 export async function initDatabase() {
@@ -94,7 +105,30 @@ export async function initDatabase() {
             FOREIGN KEY(restaurantId) REFERENCES restaurants(id) ON DELETE CASCADE
         );
     `);
- 
+
+    // Alter schema if columns are missing
+    try {
+        await db.exec(`ALTER TABLE restaurants ADD COLUMN ambience TEXT;`);
+    } catch (e) {}
+    try {
+        await db.exec(`ALTER TABLE restaurants ADD COLUMN description TEXT;`);
+    } catch (e) {}
+    try {
+        await db.exec(`ALTER TABLE tables ADD COLUMN isReservable INTEGER DEFAULT 1;`);
+    } catch (e) {}
+    try {
+        await db.exec(`ALTER TABLE restaurants ADD COLUMN latitude REAL;`);
+    } catch (e) {}
+    try {
+        await db.exec(`ALTER TABLE restaurants ADD COLUMN longitude REAL;`);
+    } catch (e) {}
+
+    // Ensure existing defaults have coordinates
+    try {
+        await db.run(`UPDATE restaurants SET latitude = 17.4399, longitude = 78.4983 WHERE id = 'r1' AND latitude IS NULL`);
+        await db.run(`UPDATE restaurants SET latitude = 17.4312, longitude = 78.4116 WHERE id = 'r2' AND latitude IS NULL`);
+    } catch (e) {}
+
     // Prepopulate database if empty
     const restCount = await db.get('SELECT COUNT(*) as count FROM restaurants');
     if (restCount.count === 0) {
@@ -102,9 +136,9 @@ export async function initDatabase() {
         
         // 1. Paradise Biryani
         await db.run(`
-            INSERT INTO restaurants (id, name, ownerEmail, address, password, cuisines, rating, deliveryTime, deliveryFee)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `, ['r1', 'Paradise Biryani', 'owner@paradise.com', 'Secunderabad', 'password123', 'Biryani, Mughlai', '4.5', '30-40 min', 'Free Delivery']);
+            INSERT INTO restaurants (id, name, ownerEmail, address, password, cuisines, rating, deliveryTime, deliveryFee, latitude, longitude)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `, ['r1', 'Paradise Biryani', 'owner@paradise.com', 'Secunderabad', 'password123', 'Biryani, Mughlai', '4.5', '30-40 min', 'Free Delivery', 17.4399, 78.4983]);
  
         const menu1 = [
             { id: 'm1', name: 'Special Chicken Biryani', price: 350, desc: 'Aromatic basmati rice cooked with succulent chicken pieces.', category: 'Biryani', type: 'non-veg', img: 'https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?ixlib=rb-1.2.1&auto=format&fit=crop&w=200&q=60' },
@@ -129,9 +163,9 @@ export async function initDatabase() {
  
         // 2. Third Wave Coffee
         await db.run(`
-            INSERT INTO restaurants (id, name, ownerEmail, address, password, cuisines, rating, deliveryTime, deliveryFee)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `, ['r2', 'Third Wave Coffee', 'coffee@thirdwave.com', 'Jubilee Hills', 'password123', 'Cafe, Desserts', '4.8', '15-20 min', 'Free Delivery']);
+            INSERT INTO restaurants (id, name, ownerEmail, address, password, cuisines, rating, deliveryTime, deliveryFee, latitude, longitude)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `, ['r2', 'Third Wave Coffee', 'coffee@thirdwave.com', 'Jubilee Hills', 'password123', 'Cafe, Desserts', '4.8', '15-20 min', 'Free Delivery', 17.4312, 78.4116]);
  
         const menu2 = [
             { id: 'tw1', name: 'Cappuccino', price: 180, desc: 'Rich espresso with smooth textured milk micro-foam.', category: 'Cafes', type: 'veg', img: 'https://images.unsplash.com/photo-1572442388796-11668a67e53d?ixlib=rb-1.2.1&auto=format&fit=crop&w=200&q=60' },
@@ -180,7 +214,11 @@ export async function getState() {
         return {
             ...r,
             menu: menuItems.filter(m => m.restaurantId === r.id),
-            tables: tables.filter(t => t.restaurantId === r.id).map(t => ({ num: t.num, status: t.status }))
+            tables: tables.filter(t => t.restaurantId === r.id).map(t => ({ 
+                num: t.num, 
+                status: t.status, 
+                isReservable: t.isReservable !== 0 ? 1 : 0 
+            }))
         };
     });
  
@@ -202,10 +240,12 @@ export async function getState() {
  
 export async function registerRestaurant(email, name, address, password) {
     const id = 'r_' + Date.now();
+    const lat = 17.43 + (Math.random() - 0.5) * 0.05;
+    const lng = 78.45 + (Math.random() - 0.5) * 0.05;
     await db.run(`
-        INSERT INTO restaurants (id, name, ownerEmail, address, password, cuisines, rating, deliveryTime, deliveryFee)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `, [id, name, email, address, password, 'Continental, Fast Food', '4.0', '20-30 min', 'Free Delivery']);
+        INSERT INTO restaurants (id, name, ownerEmail, address, password, cuisines, rating, deliveryTime, deliveryFee, latitude, longitude)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `, [id, name, email, address, password, 'Continental, Fast Food', '4.0', '20-30 min', 'Free Delivery', lat, lng]);
  
     // Default starter item
     await db.run(`
@@ -389,4 +429,31 @@ export async function sendChatMessage(restaurantId, tableNum, customerName, send
         VALUES (?, ?, ?, ?, ?, ?, ?)
     `, [id, restaurantId, String(tableNum), customerName || 'Guest', sender, message, timestamp]);
     return { id, restaurantId, tableNum: String(tableNum), customerName: customerName || 'Guest', sender, message, timestamp };
+}
+
+export async function updateRestaurantSetup(restaurantId, details) {
+    const { name, cuisines, address, description, ambience, rating, deliveryTime, deliveryFee } = details;
+    await db.run(`
+        UPDATE restaurants
+        SET name = ?, cuisines = ?, address = ?, description = ?, ambience = ?, rating = ?, deliveryTime = ?, deliveryFee = ?
+        WHERE id = ?
+    `, [
+        name || '', 
+        cuisines || '', 
+        address || '', 
+        description || '', 
+        typeof ambience === 'string' ? ambience : JSON.stringify(ambience || []), 
+        rating || '4.0', 
+        deliveryTime || '30-40 min', 
+        deliveryFee || 'Free Delivery', 
+        restaurantId
+    ]);
+}
+
+export async function updateTableReservationStatus(restaurantId, tableNum, isReservable) {
+    await db.run(`
+        UPDATE tables
+        SET isReservable = ?
+        WHERE restaurantId = ? AND num = ?
+    `, [isReservable ? 1 : 0, restaurantId, String(tableNum)]);
 }

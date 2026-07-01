@@ -455,6 +455,20 @@ class DineDirectStateStore {
             return false;
         }
     }
+
+    async updateTableStatus(restaurantId, tableNum, status) {
+        try {
+            const res = await fetch(`/api/tables/${restaurantId}/${tableNum}/status`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status })
+            });
+            return res.ok;
+        } catch (err) {
+            console.error('Failed to update table status', err);
+            return false;
+        }
+    }
 }
 
 // Instantiate and attach to window
