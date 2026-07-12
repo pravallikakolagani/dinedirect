@@ -22,7 +22,7 @@ import {
     sendChatMessage,
     updateRestaurantSetup,
     updateTableReservationStatus
-} from './database.js';
+} from '../database.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -38,8 +38,8 @@ app.use((req, res, next) => {
     next();
 });
 
-// Serve static frontend files
-app.use(express.static(__dirname));
+// Serve static frontend files from parent directory
+app.use(express.static(path.join(__dirname, '..')));
 
 const server = http.createServer(app);
 let wss;

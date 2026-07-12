@@ -2,10 +2,10 @@
   "name": "dinedirect",
   "version": "1.0.0",
   "description": "Dine Direct Real-time Table Ordering System",
-  "main": "server.js",
+  "main": "api/index.js",
   "type": "module",
   "scripts": {
-    "start": "node server.js"
+    "start": "node api/index.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.110.2",
