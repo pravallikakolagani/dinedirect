@@ -214,7 +214,12 @@ const setupAuthListeners = () => {
 
     // Call backend to trigger real Supabase Auth Email OTP
     const triggerRealOtp = async (email) => {
-        if (window.showToast) window.showToast('✉️ Sending verification code to your email...');
+        const isEmail = email.includes('@');
+        const loadMsg = isEmail 
+            ? '✉️ Sending verification code to your email...' 
+            : '📱 Sending verification code via SMS...';
+        
+        if (window.showToast) window.showToast(loadMsg);
         try {
             const res = await fetch('/api/auth/send-otp', {
                 method: 'POST',
@@ -223,7 +228,14 @@ const setupAuthListeners = () => {
             });
             const data = await res.json();
             if (res.ok) {
-                if (window.showToast) window.showToast('✉️ Verification code sent! Check your inbox.');
+                if (data.isSimulated) {
+                    if (window.showToast) window.showToast(`⚠️ SMS Simulation Mode: Use code 123456`);
+                } else {
+                    const successMsg = isEmail 
+                        ? '✉️ Verification code sent! Check your inbox.' 
+                        : '📱 Verification code sent! Check your messages.';
+                    if (window.showToast) window.showToast(successMsg);
+                }
             } else {
                 throw new Error(data.error || 'Failed to send OTP');
             }
