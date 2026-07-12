@@ -404,9 +404,12 @@ export async function updateTableReservationStatus(restaurantId, tableNum, isRes
         .eq('num', String(tableNum));
 }
 
-export async function sendOtp(email) {
+export async function sendOtp(contact) {
+    const isEmail = contact.includes('@');
+    const payload = isEmail ? { email: contact } : { phone: contact };
+    
     const { data, error } = await supabase.auth.signInWithOtp({
-        email,
+        ...payload,
         options: {
             shouldCreateUser: true
         }
@@ -415,11 +418,15 @@ export async function sendOtp(email) {
     return data;
 }
 
-export async function verifyOtp(email, token) {
+export async function verifyOtp(contact, token) {
+    const isEmail = contact.includes('@');
+    const payload = isEmail 
+        ? { email: contact, type: 'email' } 
+        : { phone: contact, type: 'sms' };
+
     const { data, error } = await supabase.auth.verifyOtp({
-        email,
-        token,
-        type: 'email'
+        ...payload,
+        token
     });
     if (error) throw error;
     return data;

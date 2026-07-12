@@ -70,14 +70,14 @@ app.get('/api/config', (req, res) => {
     });
 });
 
-// 0.b Send OTP to email
+// 0.b Send OTP to email/phone
 app.post('/api/auth/send-otp', async (req, res) => {
     try {
-        const { email } = req.body;
-        if (!email) {
-            return res.status(400).json({ error: 'Email is required' });
+        const contact = req.body.email || req.body.contact;
+        if (!contact) {
+            return res.status(400).json({ error: 'Email or phone number is required' });
         }
-        await sendOtp(email);
+        await sendOtp(contact);
         res.json({ success: true });
     } catch (err) {
         console.error('Error sending OTP:', err);
@@ -88,11 +88,12 @@ app.post('/api/auth/send-otp', async (req, res) => {
 // 0.c Verify OTP
 app.post('/api/auth/verify-otp', async (req, res) => {
     try {
-        const { email, token } = req.body;
-        if (!email || !token) {
-            return res.status(400).json({ error: 'Email and token are required' });
+        const contact = req.body.email || req.body.contact;
+        const { token } = req.body;
+        if (!contact || !token) {
+            return res.status(400).json({ error: 'Contact detail and token are required' });
         }
-        const data = await verifyOtp(email, token);
+        const data = await verifyOtp(contact, token);
         res.json({ success: true, user: data.user, session: data.session });
     } catch (err) {
         console.error('Error verifying OTP:', err);
