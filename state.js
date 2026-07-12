@@ -93,8 +93,8 @@ class DineDirectStateStore {
         // Fetch initial state from server
         this.fetchState();
 
-        // Connect WebSocket for real-time sync
-        this.connectWebSocket();
+        // Connect Supabase Realtime for real-time sync
+        this.connectSupabaseRealtime();
     }
 
     async fetchState() {
@@ -113,31 +113,45 @@ class DineDirectStateStore {
         }
     }
 
-    connectWebSocket() {
-        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const wsUrl = `${protocol}//${window.location.host}`;
-        
-        console.log('Connecting to WebSocket server:', wsUrl);
-        const ws = new WebSocket(wsUrl);
-
-        ws.onmessage = async (event) => {
-            try {
-                const data = JSON.parse(event.data);
-                console.log('Received WebSocket update:', data);
-                await this.fetchState();
-            } catch (err) {
-                console.error('Error processing WebSocket update:', err);
+    async connectSupabaseRealtime() {
+        try {
+            // Fetch public Supabase configuration from Express server
+            const configRes = await fetch('/api/config');
+            if (!configRes.ok) {
+                throw new Error(`Failed to fetch /api/config: ${configRes.statusText}`);
             }
-        };
+            const config = await configRes.json();
+            
+            if (!config.supabaseUrl || !config.supabaseAnonKey) {
+                console.warn('Supabase URL or Anon Key is missing. Realtime sync disabled.');
+                return;
+            }
 
-        ws.onclose = () => {
-            console.log('WebSocket connection closed. Reconnecting in 3 seconds...');
-            setTimeout(() => this.connectWebSocket(), 3000);
-        };
+            console.log('Initializing Supabase Realtime client...');
+            const { createClient } = window.supabase;
+            const supabase = createClient(config.supabaseUrl, config.supabaseAnonKey);
 
-        ws.onerror = (err) => {
-            console.error('WebSocket connection error:', err);
-        };
+            // Subscribe to all database changes in the public schema
+            const channel = supabase.channel('dinedirect-db-changes')
+                .on(
+                    'postgres_changes',
+                    {
+                        event: '*',
+                        schema: 'public'
+                    },
+                    (payload) => {
+                        console.log('Database change detected, refetching state:', payload);
+                        this.fetchState();
+                    }
+                )
+                .subscribe((status) => {
+                    console.log('Supabase Realtime subscription status:', status);
+                });
+        } catch (err) {
+            console.error('Failed to connect to Supabase Realtime:', err);
+            console.log('Retrying Realtime connection in 5 seconds...');
+            setTimeout(() => this.connectSupabaseRealtime(), 5000);
+        }
     }
 
     _notify() {

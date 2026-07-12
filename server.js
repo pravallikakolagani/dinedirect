@@ -42,10 +42,14 @@ app.use((req, res, next) => {
 app.use(express.static(__dirname));
 
 const server = http.createServer(app);
-const wss = new WebSocketServer({ server });
+let wss;
+if (!process.env.VERCEL) {
+    wss = new WebSocketServer({ server });
+}
 
 // WebSockets Broadcast Helper
 function broadcast(data) {
+    if (!wss) return; // Skip under Vercel
     const message = JSON.stringify(data);
     wss.clients.forEach(client => {
         if (client.readyState === 1) { // WebSocket.OPEN
@@ -55,6 +59,14 @@ function broadcast(data) {
 }
 
 // REST API Endpoints
+
+// 0. Get Supabase config
+app.get('/api/config', (req, res) => {
+    res.json({
+        supabaseUrl: process.env.SUPABASE_URL,
+        supabaseAnonKey: process.env.SUPABASE_ANON_KEY
+    });
+});
 
 // 1. Get entire state
 app.get('/api/state', async (req, res) => {
@@ -283,51 +295,62 @@ app.get('/:role', (req, res, next) => {
 
 
 // WebSocket Server Connections
-wss.on('connection', (ws) => {
-    console.log('Client connected to WebSocket server');
-    
-    ws.on('message', (message) => {
-        try {
-            const data = JSON.parse(message);
-            console.log('Received WebSocket message:', data);
-        } catch (err) {
-            console.error('Error parsing WebSocket client message:', err);
-        }
-    });
-
-    ws.on('close', () => {
-        console.log('Client disconnected');
-    });
-});
-
-// Initialize database before starting HTTP server
-initDatabase().then(() => {
-    server.listen(PORT, () => {
-        // Find local network IP address
-        let localIp = '127.0.0.1';
-        try {
-            const interfaces = os.networkInterfaces();
-            for (const devName in interfaces) {
-                const iface = interfaces[devName];
-                for (let i = 0; i < iface.length; i++) {
-                    const alias = iface[i];
-                    if (alias.family === 'IPv4' && alias.address !== '127.0.0.1' && !alias.internal) {
-                        localIp = alias.address;
-                        break;
-                    }
-                }
-                if (localIp !== '127.0.0.1') break;
+if (wss) {
+    wss.on('connection', (ws) => {
+        console.log('Client connected to WebSocket server');
+        
+        ws.on('message', (message) => {
+            try {
+                const data = JSON.parse(message);
+                console.log('Received WebSocket message:', data);
+            } catch (err) {
+                console.error('Error parsing WebSocket client message:', err);
             }
-        } catch (e) {
-            console.error('Error fetching local network IP:', e);
-        }
+        });
 
-        console.log(`\n======================================================`);
-        console.log(`Dine Direct server is running with Supabase and accessible:`);
-        console.log(`- Localhost:     http://localhost:${PORT}`);
-        console.log(`- Local Network:  http://${localIp}:${PORT}`);
-        console.log(`======================================================\n`);
+        ws.on('close', () => {
+            console.log('Client disconnected');
+        });
     });
-}).catch(err => {
-    console.error('CRITICAL: Failed to initialize Supabase database:', err);
-});
+}
+
+if (!process.env.VERCEL) {
+    // Initialize database before starting HTTP server locally
+    initDatabase().then(() => {
+        server.listen(PORT, () => {
+            // Find local network IP address
+            let localIp = '127.0.0.1';
+            try {
+                const interfaces = os.networkInterfaces();
+                for (const devName in interfaces) {
+                    const iface = interfaces[devName];
+                    for (let i = 0; i < iface.length; i++) {
+                        const alias = iface[i];
+                        if (alias.family === 'IPv4' && alias.address !== '127.0.0.1' && !alias.internal) {
+                            localIp = alias.address;
+                            break;
+                        }
+                    }
+                    if (localIp !== '127.0.0.1') break;
+                }
+            } catch (e) {
+                console.error('Error fetching local network IP:', e);
+            }
+
+            console.log(`\n======================================================`);
+            console.log(`Dine Direct server is running with Supabase and accessible:`);
+            console.log(`- Localhost:     http://localhost:${PORT}`);
+            console.log(`- Local Network:  http://${localIp}:${PORT}`);
+            console.log(`======================================================\n`);
+        });
+    }).catch(err => {
+        console.error('CRITICAL: Failed to initialize Supabase database:', err);
+    });
+} else {
+    // Under Vercel, just initialize connection on load
+    initDatabase().catch(err => {
+        console.error('Failed to initialize Supabase database on serverless start:', err);
+    });
+}
+
+export default app;
