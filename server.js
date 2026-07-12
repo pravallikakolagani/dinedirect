@@ -5,7 +5,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import os from 'os';
 
-// Import SQLite Database operations
+// Import Supabase Database operations
 import { 
     initDatabase, 
     getState, 
@@ -323,11 +323,11 @@ initDatabase().then(() => {
         }
 
         console.log(`\n======================================================`);
-        console.log(`Dine Direct SQLite server is running and accessible:`);
+        console.log(`Dine Direct server is running with Supabase and accessible:`);
         console.log(`- Localhost:     http://localhost:${PORT}`);
         console.log(`- Local Network:  http://${localIp}:${PORT}`);
         console.log(`======================================================\n`);
     });
 }).catch(err => {
-    console.error('CRITICAL: Failed to initialize SQLite database:', err);
+    console.error('CRITICAL: Failed to initialize Supabase database:', err);
 });

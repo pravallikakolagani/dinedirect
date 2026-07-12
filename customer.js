@@ -1594,193 +1594,201 @@ async function handleOptionClick(label, value) {
         }
 
         // Otherwise, render Booking Wizard
+        const tableConfigs = {
+            '1': { capacity: 2, feature: 'Window Side Cozy', x: 60, y: 70, width: 65, height: 45 },
+            '2': { capacity: 4, feature: 'Window Side Comfort', x: 60, y: 160, width: 85, height: 55 },
+            '3': { capacity: 2, feature: 'Window Side Privacy', x: 60, y: 265, width: 65, height: 45 },
+            '4': { capacity: 4, feature: 'Center Hall Executive', x: 215, y: 70, width: 85, height: 55 },
+            '5': { capacity: 6, feature: 'Center Family Premium', x: 215, y: 160, width: 105, height: 65 },
+            '6': { capacity: 4, feature: 'Patio Garden View', x: 385, y: 70, width: 85, height: 55 },
+            '7': { capacity: 2, feature: 'Patio Side Quiet', x: 385, y: 160, width: 65, height: 45 },
+            '8': { capacity: 4, feature: 'Patio Garden Premium', x: 385, y: 265, width: 85, height: 55 },
+            '9': { capacity: 2, feature: 'Cozy Aisle Seating', x: 215, y: 265, width: 65, height: 45 },
+            '10': { capacity: 6, feature: 'Garden View Family', x: 385, y: 350, width: 105, height: 65 }
+        };
+
         return CustomerViews.wrapLayout(`
             <div class="booking-wizard-layout fade-in" style="max-width: 1200px; margin: 0 auto; padding: 24px;">
-                <header style="margin-bottom: 24px;">
-                    <h2 style="font-size: 1.8rem; font-weight: 700;">Table Reservation</h2>
-                    <p class="text-muted" style="font-size: 0.9rem;">Select your preferred restaurant and table to book a priority dine-in slot.</p>
+                <header style="margin-bottom: 24px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px;">
+                    <div>
+                        <h2 style="font-size: 1.8rem; font-weight: 700; color:var(--text-main); font-family:var(--font-heading);">Table Reservation</h2>
+                        <p class="text-muted" style="font-size: 0.9rem;">Pinch/scroll to zoom, drag to pan, and click an available table to book instantly.</p>
+                    </div>
+                    <!-- Restaurant Selector -->
+                    <div class="form-group" style="margin: 0; min-width: 250px;">
+                        <label style="font-weight: 700; font-size: 0.8rem; margin-bottom: 6px; display:block; color:var(--text-muted); text-transform:uppercase;">Select Restaurant</label>
+                        <select class="form-control" id="bookingRestSelect" style="padding: 10px 14px; font-weight:600; border-radius:10px; border:1.5px solid #e2e8f0; background:white; cursor:pointer;">
+                            ${restaurants.map(r => `
+                                <option value="${r.id}" ${r.id === selectedRestId ? 'selected' : ''}>${r.name} (${r.address})</option>
+                            `).join('')}
+                        </select>
+                    </div>
                 </header>
 
-                <div style="display: grid; grid-template-columns: 1.5fr 1fr; gap: 32px; align-items: start;">
+                <div style="width: 100%;">
                     
-                    <!-- Left: Table Map Section -->
-                    <div class="card" style="padding: 24px;">
-                        <!-- Restaurant Selector -->
-                        <div class="form-group" style="margin-bottom: 24px;">
-                            <label style="font-weight: 600; font-size: 0.9rem; margin-bottom: 8px; display:block;">Select Restaurant</label>
-                            <select class="form-control" id="bookingRestSelect" style="padding: 10px; font-weight:600; border-radius:8px;">
-                                ${restaurants.map(r => `
-                                    <option value="${r.id}" ${r.id === selectedRestId ? 'selected' : ''}>${r.name} (${r.address})</option>
-                                `).join('')}
-                            </select>
-                        </div>
-
+                    <!-- Full-Width Interactive Map Card -->
+                    <div class="card" style="padding: 24px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.02); background: white; border: 1px solid #f1f5f9; position: relative;">
                         <!-- Visual Grid Guide -->
-                        <div style="display:flex; gap:16px; margin-bottom: 20px; font-size:0.8rem; border-bottom:1px solid #f1f5f9; padding-bottom:12px;">
-                            <span style="display:flex; align-items:center; gap:6px;"><span style="width:12px; height:12px; background:#22c55e; border-radius:3px;"></span> Available</span>
-                            <span style="display:flex; align-items:center; gap:6px;"><span style="width:12px; height:12px; background:#ef4444; border-radius:3px;"></span> Occupied</span>
-                            <span style="display:flex; align-items:center; gap:6px;"><span style="width:12px; height:12px; background:#f97316; border-radius:3px;"></span> Booked</span>
+                        <div style="display:flex; gap:20px; margin-bottom: 20px; font-size:0.85rem; font-weight:600; border-bottom:1px solid #f1f5f9; padding-bottom:14px; color:var(--text-main);">
+                            <span style="display:flex; align-items:center; gap:8px;"><span style="width:12px; height:12px; background:rgba(34,197,94,0.15); border:2px solid #22c55e; border-radius:3px;"></span> Available</span>
+                            <span style="display:flex; align-items:center; gap:8px;"><span style="width:12px; height:12px; background:rgba(239,68,68,0.15); border:2px solid #ef4444; border-radius:3px;"></span> Occupied</span>
+                            <span style="display:flex; align-items:center; gap:8px;"><span style="width:12px; height:12px; background:rgba(249,115,22,0.15); border:2px solid #f97316; border-radius:3px;"></span> Reserved</span>
                         </div>
 
-                        <!-- Interactive Restaurant Floor Plan Layout -->
-                        <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; gap: 6px;">
-                            <i data-lucide="map" style="width: 18px; height: 18px; color: var(--primary);"></i>
-                            <span>Interactive Dining Layout</span>
-                        </h3>
-                        
-                        <div class="floor-plan-container" style="position: relative; background: #fafbfc; border: 2px dashed rgba(0,0,0,0.08); border-radius: 20px; min-height: 400px; padding: 24px; box-sizing: border-box; overflow-x: auto; display: flex; justify-content: center; align-items: center;">
-                            <div class="floor-plan-canvas" style="position: relative; width: 500px; height: 350px; background: #ffffff; border: 1.5px solid rgba(0,0,0,0.06); border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.02); overflow: hidden;">
+                        <!-- Floor Plan Container (Viewport) -->
+                        <div class="floor-plan-container" id="floorPlanContainer">
+                            <!-- Floor Plan Canvas (Draggable / Scalable) -->
+                            <div class="floor-plan-canvas" id="floorPlanCanvas" style="width: 600px; height: 450px;">
                                 
                                 <!-- Kitchen Counter (Top) -->
-                                <div style="position: absolute; top: 0; left: 100px; right: 100px; height: 32px; background: linear-gradient(180deg, #334155, #1e293b); color: white; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700; border-bottom-left-radius: 8px; border-bottom-right-radius: 8px; letter-spacing: 0.05em;">
-                                    <i data-lucide="chef-hat" style="width: 14px; height: 14px; margin-right: 6px; color: #f97316;"></i>
+                                <div style="position: absolute; top: 0; left: 150px; right: 150px; height: 32px; background: linear-gradient(180deg, #334155, #1e293b); color: white; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700; border-bottom-left-radius: 8px; border-bottom-right-radius: 8px; letter-spacing: 0.05em; border: 1.5px solid #475569; border-top: none; z-index: 5;">
+                                    <i data-lucide="chef-hat" style="width: 14px; height: 14px; margin-right: 6px; color: #ea580c;"></i>
                                     KITCHEN COUNTER
                                 </div>
                                 
                                 <!-- Entrance (Bottom) -->
-                                <div style="position: absolute; bottom: 0; left: 180px; right: 180px; height: 24px; background: #e2e8f0; color: #475569; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: 700; border-top-left-radius: 6px; border-top-right-radius: 6px; border: 1.5px solid #cbd5e1; border-bottom: none;">
+                                <div style="position: absolute; bottom: 0; left: 220px; right: 220px; height: 26px; background: #f8fafc; color: #475569; display: flex; align-items: center; justify-content: center; font-size: 0.725rem; font-weight: 700; border-top-left-radius: 8px; border-top-right-radius: 8px; border: 1.5px solid #cbd5e1; border-bottom: none; letter-spacing: 0.05em; z-index: 5;">
                                     ENTRANCE
                                 </div>
 
                                 <!-- Left Side: Windows -->
-                                <div style="position: absolute; top: 50px; bottom: 50px; left: 0; width: 6px; display: flex; flex-direction: column; justify-content: space-around; gap: 8px;">
-                                    <div style="height: 40px; width: 6px; background: #38bdf8; border-radius: 3px; box-shadow: 0 0 8px #38bdf8;"></div>
-                                    <div style="height: 40px; width: 6px; background: #38bdf8; border-radius: 3px; box-shadow: 0 0 8px #38bdf8;"></div>
-                                    <div style="height: 40px; width: 6px; background: #38bdf8; border-radius: 3px; box-shadow: 0 0 8px #38bdf8;"></div>
+                                <div style="position: absolute; top: 60px; bottom: 60px; left: 0; width: 6px; display: flex; flex-direction: column; justify-content: space-around; gap: 8px;">
+                                    <div style="height: 60px; width: 6px; background: #38bdf8; border-radius: 3px; box-shadow: 0 0 10px rgba(56, 189, 248, 0.6);"></div>
+                                    <div style="height: 60px; width: 6px; background: #38bdf8; border-radius: 3px; box-shadow: 0 0 10px rgba(56, 189, 248, 0.6);"></div>
+                                    <div style="height: 60px; width: 6px; background: #38bdf8; border-radius: 3px; box-shadow: 0 0 10px rgba(56, 189, 248, 0.6);"></div>
                                 </div>
-                                <span style="position: absolute; left: 10px; top: 160px; font-size: 0.65rem; color: #94a3b8; font-weight: 700; writing-mode: vertical-lr; transform: rotate(180deg); letter-spacing: 0.1em;">WINDOW VIEW</span>
+                                <span style="position: absolute; left: 12px; top: 185px; font-size: 0.65rem; color: #94a3b8; font-weight: 800; writing-mode: vertical-lr; transform: rotate(180deg); letter-spacing: 0.15em;">WINDOW VIEW SIDE</span>
 
                                 <!-- Right Side: Patio / Garden -->
-                                <div style="position: absolute; top: 50px; bottom: 50px; right: 0; width: 6px; background: #86efac; border-top-left-radius: 6px; border-bottom-left-radius: 6px;"></div>
-                                <span style="position: absolute; right: 10px; top: 160px; font-size: 0.65rem; color: #4ade80; font-weight: 700; writing-mode: vertical-lr; letter-spacing: 0.1em;">PATIO GARDEN</span>
+                                <div style="position: absolute; top: 60px; bottom: 60px; right: 0; width: 6px; background: #4ade80; border-top-left-radius: 6px; border-bottom-left-radius: 6px; box-shadow: 0 0 10px rgba(74, 222, 128, 0.4);"></div>
+                                <span style="position: absolute; right: 12px; top: 185px; font-size: 0.65rem; color: #4ade80; font-weight: 800; writing-mode: vertical-lr; letter-spacing: 0.15em;">PATIO GARDEN SIDE</span>
 
                                 <!-- Dynamic Tables Layout -->
                                 ${tables.length === 0 ? `
-                                    <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #94a3b8; font-size: 0.9rem;">No tables generated yet.</div>
+                                    <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #94a3b8; font-size: 0.9rem; font-weight:600;">No tables loaded.</div>
                                 ` : tables.map((table, idx) => {
                                     const isBooked = table.status === 'booked';
                                     const isOccupied = table.status === 'occupied';
                                     const isAvailable = !isBooked && !isOccupied;
 
-                                    // Let's position tables inside our 500x350 canvas:
-                                    // Row 1 (Window Side): x: ~70px, 170px, 270px...
-                                    // Row 2 (Center): x: ~220px...
-                                    // Row 3 (Patio Side): x: ~380px...
-                                    const coords = [
-                                        { x: 70, y: 70 },   // T1: Window Side Top
-                                        { x: 70, y: 170 },  // T2: Window Side Middle
-                                        { x: 70, y: 270 },  // T3: Window Side Bottom
-                                        { x: 220, y: 90 },  // T4: Center Top
-                                        { x: 220, y: 220 }, // T5: Center Bottom
-                                        { x: 380, y: 70 },  // T6: Patio Top
-                                        { x: 380, y: 170 }, // T7: Patio Middle
-                                        { x: 380, y: 270 }, // T8: Patio Bottom
-                                        { x: 220, y: 155 }, // T9: Center Middle
-                                        { x: 380, y: 220 }  // T10: Patio Middle-Bottom
-                                    ];
-                                    
-                                    // Fallback to computed grid positions if idx exceeds predefined coords
-                                    const pos = coords[idx] || { 
+                                    const config = tableConfigs[table.num] || { 
+                                        capacity: 4, 
+                                        feature: 'Standard Table', 
                                         x: 100 + (idx % 3) * 140, 
-                                        y: 80 + Math.floor(idx / 3) * 100 
+                                        y: 80 + Math.floor(idx / 3) * 100, 
+                                        width: 80, 
+                                        height: 50 
                                     };
-                                    
-                                    let statusColor = '#22c55e'; // Green available
-                                    let statusBg = 'rgba(34, 197, 94, 0.15)';
-                                    let borderStyle = '1px solid rgba(34, 197, 94, 0.4)';
+
+                                    let statusBg = 'rgba(34, 197, 94, 0.12)';
+                                    let borderStyle = 'available';
                                     
                                     if (isOccupied) {
-                                        statusColor = '#ef4444'; // Red occupied
-                                        statusBg = 'rgba(239, 68, 68, 0.15)';
-                                        borderStyle = '1px solid rgba(239, 68, 68, 0.4)';
+                                        statusBg = 'rgba(239, 68, 68, 0.12)';
+                                        borderStyle = 'occupied';
                                     } else if (isBooked) {
-                                        statusColor = '#f97316'; // Orange booked
-                                        statusBg = 'rgba(249, 115, 22, 0.15)';
-                                        borderStyle = '1px solid rgba(249, 115, 22, 0.4)';
+                                        statusBg = 'rgba(249, 115, 22, 0.12)';
+                                        borderStyle = 'booked';
                                     }
                                     
-                                    const isSelected = activeTable === table.num;
-                                    if (isSelected) {
-                                        borderStyle = '3.5px solid #4f46e5';
-                                        statusBg = 'rgba(79, 70, 229, 0.15)';
+                                    // Generate chairs dynamically on left and right sides
+                                    const cap = config.capacity;
+                                    let chairsHtml = '';
+                                    const chairsPerSide = Math.floor(cap / 2);
+                                    
+                                    // Left chairs
+                                    for(let c = 0; c < chairsPerSide; c++) {
+                                        const topOffset = config.height * ((c + 0.5) / chairsPerSide) - 6;
+                                        chairsHtml += `<div class="realistic-chair" style="left: -8px; top: ${topOffset}px; width: 6px; height: 12px;"></div>`;
+                                    }
+                                    // Right chairs
+                                    for(let c = 0; c < chairsPerSide; c++) {
+                                        const topOffset = config.height * ((c + 0.5) / chairsPerSide) - 6;
+                                        chairsHtml += `<div class="realistic-chair" style="right: -8px; top: ${topOffset}px; width: 6px; height: 12px;"></div>`;
+                                    }
+                                    // Extra chair on top if odd capacity
+                                    if (cap % 2 !== 0) {
+                                        chairsHtml += `<div class="realistic-chair" style="top: -8px; left: ${config.width/2 - 6}px; width: 12px; height: 6px;"></div>`;
                                     }
                                     
                                     return `
-                                        <div class="booking-table-card" data-num="${table.num}" data-available="${isAvailable}" style="position: absolute; left: ${pos.x}px; top: ${pos.y}px; width: 60px; height: 60px; background: ${statusBg}; border: ${borderStyle}; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: ${isAvailable ? 'pointer' : 'not-allowed'}; opacity: ${isAvailable ? 1 : 0.8}; transition: all 0.2s; box-shadow: 0 4px 10px rgba(0,0,0,0.03); z-index: 10;" onmouseover="if(${isAvailable}) this.style.transform='scale(1.08)';" onmouseout="this.style.transform='scale(1)';">
+                                        <div class="booking-table-card realistic-table ${borderStyle}" 
+                                             data-num="${table.num}" 
+                                             data-capacity="${cap}"
+                                             data-feature="${config.feature}"
+                                             data-available="${isAvailable}" 
+                                             style="left: ${config.x}px; top: ${config.y}px; width: ${config.width}px; height: ${config.height}px; background: ${statusBg};">
                                             
-                                            <!-- Visual Chairs around the table -->
-                                            <!-- Top Chair -->
-                                            <div style="position: absolute; top: -8px; width: 14px; height: 6px; background: ${statusColor}; border-radius: 2px;"></div>
-                                            <!-- Bottom Chair -->
-                                            <div style="position: absolute; bottom: -8px; width: 14px; height: 6px; background: ${statusColor}; border-radius: 2px;"></div>
-                                            <!-- Left Chair -->
-                                            <div style="position: absolute; left: -8px; width: 6px; height: 14px; background: ${statusColor}; border-radius: 2px;"></div>
-                                            <!-- Right Chair -->
-                                            <div style="position: absolute; right: -8px; width: 6px; height: 14px; background: ${statusColor}; border-radius: 2px;"></div>
+                                            ${chairsHtml}
                                             
-                                            <span style="font-size: 0.75rem; font-weight: 800; color: ${isSelected ? '#4f46e5' : '#1e293b'};">${table.num}</span>
-                                            <span style="font-size: 0.55rem; font-weight: 700; color: ${statusColor}; text-transform: uppercase; margin-top: 1px;">
-                                                ${isOccupied ? 'Occ' : (isBooked ? 'Booked' : 'Avail')}
+                                            <span style="font-size: 0.85rem; font-weight: 800; font-family:var(--font-heading);">${table.num}</span>
+                                            <span style="font-size: 0.525rem; font-weight: 700; text-transform: uppercase; opacity: 0.8; letter-spacing:0.05em; margin-top: 1px;">
+                                                ${cap} Pax
                                             </span>
                                         </div>
                                     `;
                                 }).join('')}
                             </div>
+
+                            <!-- Floating Zoom Controls -->
+                            <div class="zoom-controls">
+                                <button class="zoom-btn" id="btnZoomIn" title="Zoom In">+</button>
+                                <button class="zoom-btn" id="btnZoomOut" title="Zoom Out">-</button>
+                                <button class="zoom-btn" id="btnZoomReset" title="Reset View" style="font-size:0.95rem;">↺</button>
+                            </div>
+
+                            <!-- Floating Tooltip -->
+                            <div class="table-tooltip" id="tableTooltip"></div>
                         </div>
                     </div>
-
-                    <!-- Right: Booking Form Section -->
-                    <div class="card" style="padding: 24px;">
-                        <h3 style="font-size: 1.25rem; font-weight: 700; margin-bottom: 16px;">Reservation Details</h3>
-                        
-                        ${!activeTable ? `
-                            <div style="text-align:center; padding: 40px 20px; border:2px dashed #eee; border-radius:12px; color:#94a3b8;">
-                                <i data-lucide="hand-metal" style="width:40px;height:40px;opacity:0.3;margin-bottom:12px;"></i>
-                                <p style="font-size:0.9rem;">Please select an available table on the map to proceed with booking.</p>
-                            </div>
-                        ` : `
-                            <form id="bookingSubmissionForm">
-                                <div style="background: #f8fafc; padding:12px 16px; border-radius:8px; border-left: 4px solid var(--primary); margin-bottom: 20px;">
-                                    <span style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Selected Slot</span>
-                                    <strong style="display:block; font-size: 1rem; color:var(--text-main);">Table ${activeTable} @ ${selectedRest.name}</strong>
-                                </div>
-                                
-                                <div class="form-group">
-                                    <label>Your Name</label>
-                                    <input type="text" class="form-control" id="bookingName" value="${session.currentUser || ''}" placeholder="Enter guest name" required>
-                                </div>
-                                <div class="form-group">
-                                    <label>Booking Date</label>
-                                    <input type="date" class="form-control" id="bookingDate" value="${new Date().toISOString().split('T')[0]}" required>
-                                </div>
-                                <div class="form-group">
-                                    <label>Time Slot</label>
-                                    <select class="form-control" id="bookingTimeSlot" required>
-                                        <option value="12:00 PM - 02:00 PM">12:00 PM - 02:00 PM (Lunch)</option>
-                                        <option value="02:00 PM - 04:00 PM">02:00 PM - 04:00 PM</option>
-                                        <option value="06:00 PM - 08:00 PM">06:00 PM - 08:00 PM (Dinner)</option>
-                                        <option value="08:00 PM - 10:00 PM" selected>08:00 PM - 10:00 PM (Peak Dinner)</option>
-                                        <option value="10:00 PM - 12:00 AM">10:00 PM - 12:00 AM</option>
-                                    </select>
-                                </div>
-                                <div class="form-group">
-                                    <label>Number of Guests</label>
-                                    <input type="number" class="form-control" id="bookingGuests" min="1" max="12" value="2" required>
-                                </div>
-                                <button type="submit" class="btn btn-primary btn-block mt-4" style="padding:12px; font-weight:600; display:flex; align-items:center; justify-content:center; gap:8px;">
-                                    <i data-lucide="check"></i> Confirm Reservation
-                                </button>
-                            </form>
-                        `}
-                    </div>
-
                 </div>
-             </div>
-         `, 'booking');
-     };
- 
-     // 7. Booking Listeners
-     CustomerViews.setupBookingListeners = () => {
+
+                <!-- Direct Booking Modal and Overlay -->
+                <div class="direct-booking-overlay" id="directBookingOverlay"></div>
+                <div class="direct-booking-modal card" id="directBookingModal">
+                    <div class="direct-booking-header">
+                        <h3 id="modalTableTitle">Book Table</h3>
+                        <button class="direct-booking-close" id="btnDirectBookingClose">✕</button>
+                    </div>
+                    <div class="direct-booking-body">
+                        <div id="modalTableSpecs"></div>
+                        <form id="directBookingSubmissionForm">
+                            <div class="form-group" style="margin-bottom:16px;">
+                                <label style="display:block; margin-bottom:6px; font-weight:600; font-size:0.85rem; color:var(--text-main);">Your Name</label>
+                                <input type="text" class="form-control" id="directBookingName" value="${session.currentUser || ''}" placeholder="Enter guest name" required style="width:100%; padding:10px 12px; border-radius:8px; border:1px solid #cbd5e1; box-sizing:border-box;">
+                            </div>
+                            <div class="form-group" style="margin-bottom:16px;">
+                                <label style="display:block; margin-bottom:6px; font-weight:600; font-size:0.85rem; color:var(--text-main);">Booking Date</label>
+                                <input type="date" class="form-control" id="directBookingDate" value="${new Date().toISOString().split('T')[0]}" required style="width:100%; padding:10px 12px; border-radius:8px; border:1px solid #cbd5e1; box-sizing:border-box;">
+                            </div>
+                            <div class="form-group" style="margin-bottom:16px;">
+                                <label style="display:block; margin-bottom:6px; font-weight:600; font-size:0.85rem; color:var(--text-main);">Time Slot</label>
+                                <select class="form-control" id="directBookingTimeSlot" required style="width:100%; padding:10px 12px; border-radius:8px; border:1px solid #cbd5e1; box-sizing:border-box; background:white;">
+                                    <option value="12:00 PM - 02:00 PM">12:00 PM - 02:00 PM (Lunch)</option>
+                                    <option value="02:00 PM - 04:00 PM">02:00 PM - 04:00 PM</option>
+                                    <option value="06:00 PM - 08:00 PM">06:00 PM - 08:00 PM (Dinner)</option>
+                                    <option value="08:00 PM - 10:00 PM" selected>08:00 PM - 10:00 PM (Peak Dinner)</option>
+                                    <option value="10:00 PM - 12:00 AM">10:00 PM - 12:00 AM</option>
+                                </select>
+                            </div>
+                            <div class="form-group" style="margin-bottom:24px;">
+                                <label style="display:block; margin-bottom:6px; font-weight:600; font-size:0.85rem; color:var(--text-main);">Number of Guests</label>
+                                <input type="number" class="form-control" id="directBookingGuests" min="1" max="12" value="2" required style="width:100%; padding:10px 12px; border-radius:8px; border:1px solid #cbd5e1; box-sizing:border-box;">
+                                <small id="guestCountWarning" class="text-danger d-none" style="display:block; margin-top:4px; font-weight:600; font-size:0.75rem;"></small>
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-block" style="padding:12px; font-weight:600; display:flex; align-items:center; justify-content:center; gap:8px; width:100%; box-shadow: 0 4px 12px rgba(234, 88, 12, 0.2);">
+                                <i data-lucide="check"></i> Confirm Reservation
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        `, 'booking');
+    };
+
+    // 7. Booking Listeners
+    CustomerViews.setupBookingListeners = () => {
         const restSelect = document.getElementById('bookingRestSelect');
         if (restSelect) {
             restSelect.addEventListener('change', () => {
@@ -1790,42 +1798,174 @@ async function handleOptionClick(label, value) {
             });
         }
 
-        // Table Selection
-        document.querySelectorAll('.booking-table-card').forEach(card => {
+        // Enter Table Menu button (if already booked)
+        const btnEnterReservedTable = document.getElementById('btnEnterReservedTable');
+        if (btnEnterReservedTable) {
+            btnEnterReservedTable.addEventListener('click', () => {
+                try {
+                    const saved = localStorage.getItem('dinedirect_active_booking');
+                    if (saved) {
+                        const booking = JSON.parse(saved);
+                        window.DineDirectStore.setSession({
+                            activeTableNum: booking.tableNum,
+                            activeRestaurantId: booking.restaurantId,
+                            userRole: 'customer'
+                        });
+                        window.location.hash = `#customer/restaurant/${booking.restaurantId}`;
+                    }
+                } catch (err) {
+                    console.error('Failed to enter reserved table', err);
+                }
+            });
+        }
+
+        // Cancel Booking button (if already booked)
+        const btnCancelBooking = document.getElementById('btnCancelBooking');
+        if (btnCancelBooking) {
+            btnCancelBooking.addEventListener('click', async () => {
+                if (confirm('Are you sure you want to cancel your table reservation?')) {
+                    try {
+                        const saved = localStorage.getItem('dinedirect_active_booking');
+                        if (saved) {
+                            const booking = JSON.parse(saved);
+                            await window.DineDirectStore.updateTableStatus(booking.restaurantId, booking.tableNum, 'available');
+                            localStorage.removeItem('dinedirect_active_booking');
+                            window.selectedBookingTableNum = null;
+                            showToast('Reservation cancelled.');
+                            if (window.Router) window.Router();
+                        }
+                    } catch (err) {
+                        console.error('Failed to cancel booking', err);
+                    }
+                }
+            });
+        }
+
+        // Tooltip Hover Listeners
+        const tooltip = document.getElementById('tableTooltip');
+        const tables = document.querySelectorAll('.booking-table-card.realistic-table');
+        
+        tables.forEach(card => {
+            card.addEventListener('mouseover', (e) => {
+                const num = card.getAttribute('data-num');
+                const cap = card.getAttribute('data-capacity');
+                const feature = card.getAttribute('data-feature');
+                const isAvailable = card.getAttribute('data-available') === 'true';
+                
+                let statusText = `<span style="color:#ef4444;">Occupied</span>`;
+                if (isAvailable) {
+                    statusText = `<span style="color:#22c55e;">Available</span>`;
+                } else if (card.classList.contains('booked')) {
+                    statusText = `<span style="color:#f97316;">Reserved</span>`;
+                }
+
+                tooltip.innerHTML = `
+                    <div style="font-weight:bold; font-size:0.85rem; margin-bottom:4px; font-family:var(--font-heading);">Table ${num}</div>
+                    <div>Capacity: <strong>${cap} Guests</strong></div>
+                    <div>Feature: <strong>${feature}</strong></div>
+                    <div style="margin-top:4px;">Status: ${statusText}</div>
+                `;
+                tooltip.style.display = 'block';
+            });
+
+            card.addEventListener('mousemove', (e) => {
+                const rect = document.getElementById('floorPlanContainer').getBoundingClientRect();
+                tooltip.style.left = (e.clientX - rect.left + 15) + 'px';
+                tooltip.style.top = (e.clientY - rect.top + 15) + 'px';
+            });
+
+            card.addEventListener('mouseout', () => {
+                tooltip.style.display = 'none';
+            });
+        });
+
+        // Direct Booking Modal Triggers
+        const overlay = document.getElementById('directBookingOverlay');
+        const modal = document.getElementById('directBookingModal');
+        const modalClose = document.getElementById('btnDirectBookingClose');
+        const bookingForm = document.getElementById('directBookingSubmissionForm');
+        
+        tables.forEach(card => {
             const isAvailable = card.getAttribute('data-available') === 'true';
-            if (isAvailable) {
+            if (isAvailable && overlay && modal) {
                 card.addEventListener('click', () => {
                     const num = card.getAttribute('data-num');
+                    const cap = parseInt(card.getAttribute('data-capacity'), 10);
+                    const feature = card.getAttribute('data-feature');
+                    
                     window.selectedBookingTableNum = num;
-                    if (window.Router) window.Router();
+                    
+                    // Mark visually as selected
+                    tables.forEach(t => t.classList.remove('selected'));
+                    card.classList.add('selected');
+
+                    // Set modal text
+                    document.getElementById('modalTableTitle').textContent = `Book Table ${num}`;
+                    document.getElementById('modalTableSpecs').innerHTML = `
+                        <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+                            <span>Capacity Limit:</span><strong>${cap} Guests</strong>
+                        </div>
+                        <div style="display:flex; justify-content:space-between;">
+                            <span>Layout Area:</span><strong>${feature}</strong>
+                        </div>
+                    `;
+
+                    // Set input constraints
+                    const guestsInput = document.getElementById('directBookingGuests');
+                    guestsInput.value = Math.min(2, cap);
+                    guestsInput.max = cap;
+
+                    const warning = document.getElementById('guestCountWarning');
+                    warning.classList.add('d-none');
+
+                    guestsInput.oninput = () => {
+                        const val = parseInt(guestsInput.value, 10);
+                        if (val > cap) {
+                            warning.textContent = `⚠️ Exceeds capacity limit of ${cap} guests!`;
+                            warning.classList.remove('d-none');
+                        } else {
+                            warning.classList.add('d-none');
+                        }
+                    };
+
+                    // Show Modal
+                    overlay.classList.add('active');
+                    modal.classList.add('active');
                 });
             }
         });
 
-        // Booking Submission
-        const submissionForm = document.getElementById('bookingSubmissionForm');
-        if (submissionForm) {
-            submissionForm.addEventListener('submit', async (e) => {
+        const closeModal = () => {
+            if(overlay && modal) {
+                overlay.classList.remove('active');
+                modal.classList.remove('active');
+                tables.forEach(t => t.classList.remove('selected'));
+            }
+        };
+
+        if (modalClose) modalClose.addEventListener('click', closeModal);
+        if (overlay) overlay.addEventListener('click', closeModal);
+
+        // Booking Submission Handling
+        if (bookingForm) {
+            bookingForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
-                const name = document.getElementById('bookingName').value;
-                const date = document.getElementById('bookingDate').value;
-                const timeSlot = document.getElementById('bookingTimeSlot').value;
-                const guests = document.getElementById('bookingGuests').value;
+                const name = document.getElementById('directBookingName').value;
+                const date = document.getElementById('directBookingDate').value;
+                const timeSlot = document.getElementById('directBookingTimeSlot').value;
+                const guests = document.getElementById('directBookingGuests').value;
                 
                 const restId = window.selectedBookingRestaurantId || 'r1';
                 const tableNum = window.selectedBookingTableNum;
                 
-                // 1. Call Store to update SQLite Table status to 'booked'
                 const success = await window.DineDirectStore.updateTableStatus(restId, tableNum, 'booked');
                 if (success) {
-                    // 2. Temporarily align session so createSupportAlert connects correctly
                     window.DineDirectStore.setSession({
                         activeTableNum: tableNum,
                         activeRestaurantId: restId,
                         currentUser: name
                     });
 
-                    // 3. Save booking details locally
                     const bookingDetails = {
                         restaurantId: restId,
                         tableNum,
@@ -1836,11 +1976,11 @@ async function handleOptionClick(label, value) {
                     };
                     localStorage.setItem('dinedirect_active_booking', JSON.stringify(bookingDetails));
                     
-                    // 4. Trigger alert/chat simulation to notify KDS/Owner instantly
                     await window.DineDirectStore.createSupportAlert(
                         `Table reservation confirmed for ${timeSlot} (${guests} people)`
                     );
                     
+                    closeModal();
                     showToast('Table booked successfully!');
                     if (window.Router) window.Router();
                 } else {
@@ -1849,60 +1989,106 @@ async function handleOptionClick(label, value) {
             });
         }
 
-        // Enter Table Menu button
-        const btnEnterReservedTable = document.getElementById('btnEnterReservedTable');
-        if (btnEnterReservedTable) {
-            btnEnterReservedTable.addEventListener('click', () => {
-                try {
-                    const saved = localStorage.getItem('dinedirect_active_booking');
-                    if (saved) {
-                        const booking = JSON.parse(saved);
-                        
-                        // Seat the customer
-                        window.DineDirectStore.setSession({
-                            activeTableNum: booking.tableNum,
-                            activeRestaurantId: booking.restaurantId,
-                            userRole: 'customer'
-                        });
-                        
-                        // Redirect to restaurant menu
-                        window.location.hash = `#customer/restaurant/${booking.restaurantId}`;
-                    }
-                } catch (err) {
-                    console.error('Failed to enter reserved table', err);
+        // Pan and Zoom Functionality Implementation
+        const container = document.getElementById('floorPlanContainer');
+        const canvas = document.getElementById('floorPlanCanvas');
+        const btnIn = document.getElementById('btnZoomIn');
+        const btnOut = document.getElementById('btnZoomOut');
+        const btnReset = document.getElementById('btnZoomReset');
+
+        if (container && canvas) {
+            window.floorPlanZoom = window.floorPlanZoom || 1.0;
+            window.floorPlanPanX = window.floorPlanPanX || 0;
+            window.floorPlanPanY = window.floorPlanPanY || 0;
+
+            const applyTransform = () => {
+                canvas.style.transform = `translate(${window.floorPlanPanX}px, ${window.floorPlanPanY}px) scale(${window.floorPlanZoom})`;
+            };
+
+            applyTransform();
+
+            if (btnIn) {
+                btnIn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    window.floorPlanZoom = Math.min(window.floorPlanZoom + 0.15, 2.2);
+                    applyTransform();
+                });
+            }
+
+            if (btnOut) {
+                btnOut.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    window.floorPlanZoom = Math.max(window.floorPlanZoom - 0.15, 0.65);
+                    applyTransform();
+                });
+            }
+
+            if (btnReset) {
+                btnReset.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    window.floorPlanZoom = 1.0;
+                    window.floorPlanPanX = 0;
+                    window.floorPlanPanY = 0;
+                    applyTransform();
+                });
+            }
+
+            // Drag Panning Events
+            let isDragging = false;
+            let startX = 0;
+            let startY = 0;
+
+            container.addEventListener('mousedown', (e) => {
+                // Only allow dragging on viewport container background, not on interactive table cards
+                if (e.target !== container && e.target !== canvas && !e.target.classList.contains('realistic-chair')) {
+                    if (!e.target.id && !e.target.style.position) return;
+                }
+                isDragging = true;
+                startX = e.clientX - window.floorPlanPanX;
+                startY = e.clientY - window.floorPlanPanY;
+                container.style.cursor = 'grabbing';
+            });
+
+            document.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                window.floorPlanPanX = e.clientX - startX;
+                window.floorPlanPanY = e.clientY - startY;
+                applyTransform();
+            });
+
+            document.addEventListener('mouseup', () => {
+                isDragging = false;
+                container.style.cursor = 'grab';
+            });
+
+            // Touch Panning Support (Mobile/Tablet)
+            container.addEventListener('touchstart', (e) => {
+                if (e.touches.length === 1) {
+                    isDragging = true;
+                    startX = e.touches[0].clientX - window.floorPlanPanX;
+                    startY = e.touches[0].clientY - window.floorPlanPanY;
                 }
             });
-        }
 
-        // Cancel Booking button
-        const btnCancelBooking = document.getElementById('btnCancelBooking');
-        if (btnCancelBooking) {
-            btnCancelBooking.addEventListener('click', async () => {
-                if (confirm('Are you sure you want to cancel your table reservation?')) {
-                    try {
-                        const saved = localStorage.getItem('dinedirect_active_booking');
-                        if (saved) {
-                            const booking = JSON.parse(saved);
-                            
-                            // 1. Release SQLite Table back to 'available'
-                            await window.DineDirectStore.updateTableStatus(booking.restaurantId, booking.tableNum, 'available');
-                            
-                            // 2. Clear local storage
-                            localStorage.removeItem('dinedirect_active_booking');
-                            
-                            // 3. Clear selected table state
-                            window.selectedBookingTableNum = null;
-                            
-                            showToast('Reservation cancelled.');
-                            if (window.Router) window.Router();
-                        }
-                    } catch (err) {
-                        console.error('Failed to cancel booking', err);
-                    }
-                 }
-             });
-         }
+            container.addEventListener('touchmove', (e) => {
+                if (isDragging && e.touches.length === 1) {
+                    window.floorPlanPanX = e.touches[0].clientX - startX;
+                    window.floorPlanPanY = e.touches[0].clientY - startY;
+                    applyTransform();
+                }
+            });
+
+            container.addEventListener('touchend', () => {
+                isDragging = false;
+            });
+        }
+        
+        // Re-create lucide icons inside custom UI
+        if (window.lucide) {
+            window.lucide.createIcons();
+        }
      };
  
  window.CustomerViews = CustomerViews;
  export default CustomerViews;
+

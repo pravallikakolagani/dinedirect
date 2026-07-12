@@ -1,0 +1,7 @@
+node_modules/
+.env
+dinedirect.db
+dinedirect.db-journal
+dinedirect.db-shm
+dinedirect.db-wal
+.DS_Store
