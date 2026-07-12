@@ -102,12 +102,14 @@ const createAuthView = () => {
                                 <input type="text" class="form-control" id="customerNameInput" placeholder="e.g. John Doe" required>
                             </div>
                             <div class="form-group">
-                                <label style="color:#8f2c24; font-size:0.8rem; display:block; margin-bottom:8px; font-weight:600;">4-Digit OTP Code</label>
-                                <div style="display:flex; gap:12px; justify-content:space-between; margin-bottom:8px;">
-                                    <input type="text" class="form-control otp-digit" maxlength="1" style="text-align:center; font-size:1.4rem; font-weight:bold; padding:10px 0 !important; width:54px; height:50px; background:#fff !important; border:1.5px solid #cbd5e1 !important; color:#1e293b !important;" required>
-                                    <input type="text" class="form-control otp-digit" maxlength="1" style="text-align:center; font-size:1.4rem; font-weight:bold; padding:10px 0 !important; width:54px; height:50px; background:#fff !important; border:1.5px solid #cbd5e1 !important; color:#1e293b !important;" required disabled>
-                                    <input type="text" class="form-control otp-digit" maxlength="1" style="text-align:center; font-size:1.4rem; font-weight:bold; padding:10px 0 !important; width:54px; height:50px; background:#fff !important; border:1.5px solid #cbd5e1 !important; color:#1e293b !important;" required disabled>
-                                    <input type="text" class="form-control otp-digit" maxlength="1" style="text-align:center; font-size:1.4rem; font-weight:bold; padding:10px 0 !important; width:54px; height:50px; background:#fff !important; border:1.5px solid #cbd5e1 !important; color:#1e293b !important;" required disabled>
+                                <label style="color:#8f2c24; font-size:0.8rem; display:block; margin-bottom:8px; font-weight:600;">6-Digit OTP Code</label>
+                                <div style="display:flex; gap:6px; justify-content:space-between; margin-bottom:8px;">
+                                    <input type="text" class="form-control otp-digit" maxlength="1" style="text-align:center; font-size:1.3rem; font-weight:bold; padding:10px 0 !important; width:36px; height:46px; background:#fff !important; border:1.5px solid #cbd5e1 !important; color:#1e293b !important;" required>
+                                    <input type="text" class="form-control otp-digit" maxlength="1" style="text-align:center; font-size:1.3rem; font-weight:bold; padding:10px 0 !important; width:36px; height:46px; background:#fff !important; border:1.5px solid #cbd5e1 !important; color:#1e293b !important;" required disabled>
+                                    <input type="text" class="form-control otp-digit" maxlength="1" style="text-align:center; font-size:1.3rem; font-weight:bold; padding:10px 0 !important; width:36px; height:46px; background:#fff !important; border:1.5px solid #cbd5e1 !important; color:#1e293b !important;" required disabled>
+                                    <input type="text" class="form-control otp-digit" maxlength="1" style="text-align:center; font-size:1.3rem; font-weight:bold; padding:10px 0 !important; width:36px; height:46px; background:#fff !important; border:1.5px solid #cbd5e1 !important; color:#1e293b !important;" required disabled>
+                                    <input type="text" class="form-control otp-digit" maxlength="1" style="text-align:center; font-size:1.3rem; font-weight:bold; padding:10px 0 !important; width:36px; height:46px; background:#fff !important; border:1.5px solid #cbd5e1 !important; color:#1e293b !important;" required disabled>
+                                    <input type="text" class="form-control otp-digit" maxlength="1" style="text-align:center; font-size:1.3rem; font-weight:bold; padding:10px 0 !important; width:36px; height:46px; background:#fff !important; border:1.5px solid #cbd5e1 !important; color:#1e293b !important;" required disabled>
                                 </div>
                                 <p class="text-muted" style="font-size:0.75rem; text-align:left; color:#8f2c24 !important; opacity:0.8;">
                                     Code sent to <strong id="otpSentTarget">user@example.com</strong>
@@ -210,19 +212,25 @@ const setupAuthListeners = () => {
     const btnResendOtp = document.getElementById('btnResendOtp');
     const authRoleToggle = document.getElementById('authRoleToggle');
 
-    // Generate random 4-digit OTP
-    const triggerOtpSimulation = (contact) => {
-        const code = Math.floor(1000 + Math.random() * 9000);
-        window.activeOtp = String(code);
-        
-        // Dynamic notification toast
-        setTimeout(() => {
-            if (window.showToast) {
-                window.showToast(`🔑 Verification code for Dine Direct is: ${code}`);
+    // Call backend to trigger real Supabase Auth Email OTP
+    const triggerRealOtp = async (email) => {
+        if (window.showToast) window.showToast('✉️ Sending verification code to your email...');
+        try {
+            const res = await fetch('/api/auth/send-otp', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email })
+            });
+            const data = await res.json();
+            if (res.ok) {
+                if (window.showToast) window.showToast('✉️ Verification code sent! Check your inbox.');
             } else {
-                alert(`Verification Code: ${code}`);
+                throw new Error(data.error || 'Failed to send OTP');
             }
-        }, 800);
+        } catch (err) {
+            console.error('Error sending OTP:', err);
+            if (window.showToast) window.showToast(`❌ Error: ${err.message}`);
+        }
     };
 
     if(btnCustomer && btnOwner) {
@@ -255,7 +263,7 @@ const setupAuthListeners = () => {
             authRoleToggle.classList.add('d-none'); // Hide toggle in OTP screen
 
             // Trigger OTP
-            triggerOtpSimulation(contact);
+            triggerRealOtp(contact);
 
             // Focus first digit
             const firstDigit = document.querySelector('.otp-digit');
@@ -311,29 +319,41 @@ const setupAuthListeners = () => {
             });
             otpDigits[0].focus();
 
-            triggerOtpSimulation(contact);
+            triggerRealOtp(contact);
         });
     }
 
     if(customerOtpForm) {
-        customerOtpForm.addEventListener('submit', (e) => {
+        customerOtpForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const name = document.getElementById('customerNameInput').value;
             const enteredOtp = Array.from(otpDigits).map(d => d.value).join('');
+            const email = document.getElementById('otpSentTarget').textContent;
 
-            if (enteredOtp === window.activeOtp) {
-                window.DineDirectStore.setSession({
-                    isLoggedIn: true,
-                    userRole: 'customer',
-                    currentUser: name
+            if (window.showToast) window.showToast('🔒 Verifying code...');
+
+            try {
+                const res = await fetch('/api/auth/verify-otp', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, token: enteredOtp })
                 });
-                window.location.hash = '#customer/home';
-                if (window.showToast) window.showToast(`Welcome, ${name}!`);
-            } else {
-                if (window.showToast) {
-                    window.showToast('❌ Incorrect verification code. Resend OTP to try again.');
+                const data = await res.json();
+                if (res.ok) {
+                    window.DineDirectStore.setSession({
+                        isLoggedIn: true,
+                        userRole: 'customer',
+                        currentUser: name
+                    });
+                    window.location.hash = '#customer/home';
+                    if (window.showToast) window.showToast(`Welcome, ${name}!`);
                 } else {
-                    alert('Incorrect verification code.');
+                    throw new Error(data.error || 'Invalid verification code');
+                }
+            } catch (err) {
+                console.error('Error verifying OTP:', err);
+                if (window.showToast) {
+                    window.showToast(`❌ Verification failed: ${err.message}`);
                 }
             }
         });

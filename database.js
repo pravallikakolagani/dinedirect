@@ -403,3 +403,25 @@ export async function updateTableReservationStatus(restaurantId, tableNum, isRes
         .eq('restaurantId', restaurantId)
         .eq('num', String(tableNum));
 }
+
+export async function sendOtp(email) {
+    const { data, error } = await supabase.auth.signInWithOtp({
+        email,
+        options: {
+            shouldCreateUser: true
+        }
+    });
+    if (error) throw error;
+    return data;
+}
+
+export async function verifyOtp(email, token) {
+    const { data, error } = await supabase.auth.verifyOtp({
+        email,
+        token,
+        type: 'email'
+    });
+    if (error) throw error;
+    return data;
+}
+

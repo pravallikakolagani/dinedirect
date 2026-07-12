@@ -21,7 +21,9 @@ import {
     resolveSupportAlert,
     sendChatMessage,
     updateRestaurantSetup,
-    updateTableReservationStatus
+    updateTableReservationStatus,
+    sendOtp,
+    verifyOtp
 } from '../database.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -66,6 +68,36 @@ app.get('/api/config', (req, res) => {
         supabaseUrl: process.env.SUPABASE_URL,
         supabaseAnonKey: process.env.SUPABASE_ANON_KEY
     });
+});
+
+// 0.b Send OTP to email
+app.post('/api/auth/send-otp', async (req, res) => {
+    try {
+        const { email } = req.body;
+        if (!email) {
+            return res.status(400).json({ error: 'Email is required' });
+        }
+        await sendOtp(email);
+        res.json({ success: true });
+    } catch (err) {
+        console.error('Error sending OTP:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// 0.c Verify OTP
+app.post('/api/auth/verify-otp', async (req, res) => {
+    try {
+        const { email, token } = req.body;
+        if (!email || !token) {
+            return res.status(400).json({ error: 'Email and token are required' });
+        }
+        const data = await verifyOtp(email, token);
+        res.json({ success: true, user: data.user, session: data.session });
+    } catch (err) {
+        console.error('Error verifying OTP:', err);
+        res.status(400).json({ error: err.message });
+    }
 });
 
 // 1. Get entire state
