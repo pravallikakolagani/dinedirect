@@ -415,10 +415,14 @@ const setupOwnerSignupListener = () => {
 };
 
 const Router = () => {
-    const appDiv = document.getElementById('app');
     const fullHash = window.location.hash || '#auth';
+    
+    // If this is a Supabase OAuth callback hash, let the Supabase client parse it first
+    if (fullHash.startsWith('#access_token=') || fullHash.includes('type=recovery') || fullHash.includes('error=')) {
+        return;
+    }
 
-    // Parse hash and query params
+    const appDiv = document.getElementById('app');
     const hashParts = fullHash.split('?');
     const route = hashParts[0];
     const queryStr = hashParts[1] || '';
