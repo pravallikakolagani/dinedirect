@@ -427,6 +427,25 @@ const Router = () => {
     const route = hashParts[0];
     const queryStr = hashParts[1] || '';
 
+    // Auto-redirect logged-in users away from auth screen
+    const session = window.DineDirectStore.getSession();
+    if (session && session.isLoggedIn) {
+        if (route === '#auth' || route === '#owner/signup') {
+            if (session.userRole === 'customer') {
+                const profile = window.DineDirectStore.state.profile;
+                if (!profile || !profile.phone || !profile.address) {
+                    window.location.hash = '#customer/register';
+                } else {
+                    window.location.hash = '#customer/home';
+                }
+                return;
+            } else if (session.userRole === 'owner') {
+                window.location.hash = '#owner/dashboard';
+                return;
+            }
+        }
+    }
+
     const params = {};
     if (queryStr) {
         queryStr.split('&').forEach(pair => {
