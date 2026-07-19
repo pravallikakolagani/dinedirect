@@ -922,9 +922,13 @@ const CustomerViews = {
                                         <i data-lucide="user" style="width:16px; height:16px; color:var(--primary);"></i>
                                         <span>Customer Details</span>
                                     </h4>
-                                    <div class="form-group" style="margin-bottom:16px;">
+                                    <div class="form-group" style="margin-bottom:12px;">
                                         <label style="font-size:0.8rem; color:var(--text-muted); display:block; margin-bottom:6px; font-weight:500;">Your Name</label>
                                         <input type="text" class="form-control" id="checkoutCustomerName" placeholder="e.g. John Doe" required style="background:#fff; border:1px solid #ddd; padding:10px 12px; border-radius:8px; width:100%; box-sizing:border-box; font-size:0.9rem;">
+                                    </div>
+                                    <div class="form-group" style="margin-bottom:16px;">
+                                        <label style="font-size:0.8rem; color:var(--text-muted); display:block; margin-bottom:6px; font-weight:500;">Phone Number</label>
+                                        <input type="tel" class="form-control" id="checkoutCustomerPhone" placeholder="e.g. +91 98765 43210" required style="background:#fff; border:1px solid #ddd; padding:10px 12px; border-radius:8px; width:100%; box-sizing:border-box; font-size:0.9rem;">
                                     </div>
                                 </div>
                             ` : ''}
@@ -1004,10 +1008,18 @@ const CustomerViews = {
         if (btnPayLater) {
             btnPayLater.addEventListener('click', () => {
                 const nameInput = document.getElementById('checkoutCustomerName');
+                const phoneInput = document.getElementById('checkoutCustomerPhone');
+                
                 if (nameInput && !nameInput.value.trim()) {
                     nameInput.focus();
                     nameInput.style.borderColor = 'var(--danger)';
                     showToast('⚠️ Please enter your name to proceed.');
+                    return;
+                }
+                if (phoneInput && !phoneInput.value.trim()) {
+                    phoneInput.focus();
+                    phoneInput.style.borderColor = 'var(--danger)';
+                    showToast('⚠️ Please enter your phone number to proceed.');
                     return;
                 }
                 
@@ -1015,6 +1027,10 @@ const CustomerViews = {
                 let userName = session.currentUser || 'Guest';
                 if (nameInput && nameInput.value.trim()) {
                     userName = nameInput.value.trim();
+                    const phoneVal = phoneInput ? phoneInput.value.trim() : '';
+                    if (phoneVal) {
+                        userName += ` (${phoneVal})`;
+                    }
                     window.DineDirectStore.setSession({ currentUser: userName });
                 }
                 
@@ -1033,10 +1049,18 @@ const CustomerViews = {
         if (btnPayNow && paymentModal) {
             btnPayNow.addEventListener('click', () => {
                 const nameInput = document.getElementById('checkoutCustomerName');
+                const phoneInput = document.getElementById('checkoutCustomerPhone');
+                
                 if (nameInput && !nameInput.value.trim()) {
                     nameInput.focus();
                     nameInput.style.borderColor = 'var(--danger)';
                     showToast('⚠️ Please enter your name to proceed.');
+                    return;
+                }
+                if (phoneInput && !phoneInput.value.trim()) {
+                    phoneInput.focus();
+                    phoneInput.style.borderColor = 'var(--danger)';
+                    showToast('⚠️ Please enter your phone number to proceed.');
                     return;
                 }
                 
@@ -1066,8 +1090,14 @@ const CustomerViews = {
                 const cart = window.DineDirectStore.getCart(restId);
                 let userName = session.currentUser || 'Guest';
                 const nameInput = document.getElementById('checkoutCustomerName');
+                const phoneInput = document.getElementById('checkoutCustomerPhone');
+                
                 if (nameInput && nameInput.value.trim()) {
                     userName = nameInput.value.trim();
+                    const phoneVal = phoneInput ? phoneInput.value.trim() : '';
+                    if (phoneVal) {
+                        userName += ` (${phoneVal})`;
+                    }
                     window.DineDirectStore.setSession({ currentUser: userName });
                 }
                 
