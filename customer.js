@@ -373,7 +373,18 @@ const CustomerViews = {
                         <h3 style="font-size:1.15rem; margin:0;"><i data-lucide="map-pin" style="color:var(--primary); vertical-align:middle; margin-right:6px;"></i> Select Location</h3>
                         <button id="btnCloseLocationModal" style="background:none; border:none; font-size:1.2rem; cursor:pointer; color:#888;">✕</button>
                     </div>
-                    <p class="text-muted" style="font-size:0.85rem; margin-bottom:16px;">Choose your simulated location to filter nearby restaurants.</p>
+                    <p class="text-muted" style="font-size:0.85rem; margin-bottom:16px;">Choose your location or use GPS to calculate distances to restaurants.</p>
+                    
+                    <button class="btn btn-primary btn-block" id="btnUseGpsLocation" style="padding:12px; margin-bottom:16px; font-weight:700; background:var(--primary); color:white; border-radius:8px; display:flex; justify-content:center; align-items:center; gap:8px;">
+                        <i data-lucide="navigation"></i> Use My Live GPS Location
+                    </button>
+                    
+                    <div style="display:flex; align-items:center; margin:12px 0;">
+                        <hr style="flex:1; border:0; border-top:1px solid #eee;">
+                        <span style="padding:0 10px; font-size:0.75rem; color:#888; font-weight:600; text-transform:uppercase;">Or select preset area</span>
+                        <hr style="flex:1; border:0; border-top:1px solid #eee;">
+                    </div>
+
                     <div style="display:flex; flex-direction:column; gap:10px;" id="locationOptionsList">
                         ${HYD_LOCATIONS.map(loc => `
                             <button class="btn btn-secondary btn-block select-loc-btn ${window.customerLocation.name === loc.name ? 'active' : ''}" data-name="${loc.name}" data-lat="${loc.lat}" data-lng="${loc.lng}" style="padding:12px; text-align:left; justify-content:flex-start; border-radius:8px; border:1px solid ${window.customerLocation.name === loc.name ? 'var(--primary)' : '#ddd'}; background:${window.customerLocation.name === loc.name ? 'rgba(255,107,53,0.05)' : 'white'}; font-weight:${window.customerLocation.name === loc.name ? '700' : '500'};">
@@ -540,6 +551,56 @@ const CustomerViews = {
             btnCloseLoc.addEventListener('click', () => {
                 locModal.classList.add('d-none');
                 locModal.style.display = 'none';
+            });
+        }
+
+        const btnUseGpsLocation = document.getElementById('btnUseGpsLocation');
+        if (btnUseGpsLocation) {
+            btnUseGpsLocation.addEventListener('click', () => {
+                if (!navigator.geolocation) {
+                    showToast('❌ Geolocation is not supported by your browser.');
+                    return;
+                }
+                
+                showToast('📍 Requesting GPS Location...');
+                btnUseGpsLocation.disabled = true;
+                btnUseGpsLocation.innerHTML = `Fetching coordinates...`;
+                
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        const lat = position.coords.latitude;
+                        const lng = position.coords.longitude;
+                        
+                        window.customerLocation = {
+                            name: `GPS Location (${lat.toFixed(4)}, ${lng.toFixed(4)})`,
+                            lat: lat,
+                            lng: lng
+                        };
+                        
+                        locModal.classList.add('d-none');
+                        locModal.style.display = 'none';
+                        showToast('✅ Live location set successfully!');
+                        
+                        if (window.Router) window.Router();
+                    },
+                    (error) => {
+                        console.error('Error fetching Geolocation:', error);
+                        btnUseGpsLocation.disabled = false;
+                        btnUseGpsLocation.innerHTML = `<i data-lucide="navigation"></i> Use My Live GPS Location`;
+                        if (window.lucide) window.lucide.createIcons();
+                        
+                        let errMsg = 'Failed to get GPS location.';
+                        if (error.code === error.PERMISSION_DENIED) {
+                            errMsg = 'GPS Permission Denied. Please enable location permissions.';
+                        }
+                        showToast(`❌ ${errMsg}`);
+                    },
+                    {
+                        enableHighAccuracy: true,
+                        timeout: 8000,
+                        maximumAge: 0
+                    }
+                );
             });
         }
 
