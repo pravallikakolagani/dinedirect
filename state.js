@@ -394,7 +394,6 @@ class DineDirectStateStore {
             if (res.ok) {
                 const googleRest = await res.json();
                 this.state.googleRestaurants = googleRest || [];
-                this._notify();
                 return this.state.googleRestaurants;
             }
         } catch (err) {
