@@ -490,18 +490,22 @@ const CustomerViews = {
             });
         });
 
-        // Search filtering
+        // Search filtering (with 300ms debounce to prevent request spamming)
         const searchInput = document.getElementById('restaurantSearch');
+        let searchTimeout;
         if (searchInput) {
             searchInput.addEventListener('input', (e) => {
-                const query = e.target.value;
-                const activeCard = document.querySelector('#homeCategories .category-card.active');
-                const category = activeCard ? activeCard.getAttribute('data-category') : 'All';
-                filterRestaurants(category, query);
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => {
+                    const query = e.target.value;
+                    const activeCard = document.querySelector('#homeCategories .category-card.active');
+                    const category = activeCard ? activeCard.getAttribute('data-category') : 'All';
+                    filterRestaurants(category, query);
+                }, 300);
             });
         }
 
-        // Radius inputs change handler
+        // Radius inputs change handler (triggers on change or blur, not on every keystroke)
         const minInput = document.getElementById('minRadiusInput');
         const maxInput = document.getElementById('maxRadiusInput');
         
@@ -516,14 +520,15 @@ const CustomerViews = {
                 window.customerMinRadius = minVal;
                 window.customerMaxRadius = maxVal;
                 
-                // Trigger restaurant list re-filtering
                 const activeCard = document.querySelector('#homeCategories .category-card.active');
                 const category = activeCard ? activeCard.getAttribute('data-category') : 'All';
                 filterRestaurants(category, document.getElementById('restaurantSearch').value || '');
             };
 
-            minInput.addEventListener('input', handleRadiusChange);
-            maxInput.addEventListener('input', handleRadiusChange);
+            minInput.addEventListener('change', handleRadiusChange);
+            minInput.addEventListener('blur', handleRadiusChange);
+            maxInput.addEventListener('change', handleRadiusChange);
+            maxInput.addEventListener('blur', handleRadiusChange);
         }
 
         // Open location modal click handler
@@ -626,6 +631,10 @@ const CustomerViews = {
             const listContainer = document.getElementById('homeRestaurantList');
             if (!listContainer) return;
             
+            // Increment sequence number to prevent race conditions
+            window.googlePlacesLoadSeq = (window.googlePlacesLoadSeq || 0) + 1;
+            const currentSeq = window.googlePlacesLoadSeq;
+
             const lat = window.customerLocation.lat;
             const lng = window.customerLocation.lng;
             const maxRadKm = window.customerMaxRadius !== undefined ? window.customerMaxRadius : 5;
@@ -640,6 +649,10 @@ const CustomerViews = {
             const existingGooglePlaces = document.querySelectorAll('#homeRestaurantList .google-restaurant-card');
             existingGooglePlaces.forEach(el => el.remove());
             
+            // Clear any old loading indicators first
+            const existingIndicators = document.querySelectorAll('#homeRestaurantList .google-loading-indicator');
+            existingIndicators.forEach(el => el.remove());
+
             const loadingIndicator = document.createElement('div');
             loadingIndicator.className = 'text-center text-muted google-loading-indicator';
             loadingIndicator.style.gridColumn = '1 / -1';
@@ -649,6 +662,12 @@ const CustomerViews = {
             
             try {
                 const googleRest = await window.DineDirectStore.fetchGoogleRestaurants(lat, lng, radiusMeters);
+                
+                // If a newer request has started, abort rendering this stale fetch!
+                if (currentSeq !== window.googlePlacesLoadSeq) {
+                    return;
+                }
+                
                 loadingIndicator.remove();
                 
                 const registeredRests = window.DineDirectStore.getRestaurants();
