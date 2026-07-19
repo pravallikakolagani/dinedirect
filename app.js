@@ -508,7 +508,16 @@ const Router = () => {
     const fullHash = window.location.hash || '#auth';
     
     // If this is a Supabase OAuth callback hash, let the Supabase client parse it first
-    if (fullHash.startsWith('#access_token=') || fullHash.includes('type=recovery') || fullHash.includes('error=')) {
+    if (fullHash.startsWith('#access_token=') || fullHash.includes('type=recovery')) {
+        return;
+    }
+
+    // Parse and show authentication errors from the URL hash (like expired links)
+    if (fullHash.includes('error=')) {
+        const hashParams = new URLSearchParams(fullHash.substring(1));
+        const errorDesc = hashParams.get('error_description') || 'Authentication link is invalid or has expired.';
+        if (window.showToast) window.showToast(`❌ Login failed: ${errorDesc.replace(/\+/g, ' ')}`);
+        window.location.hash = '#auth';
         return;
     }
 
