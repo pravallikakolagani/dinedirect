@@ -120,20 +120,11 @@ const CustomerViews = {
                     <a href="#customer/booking" class="nav-item ${activePage === 'booking' ? 'active' : ''}">
                         <i data-lucide="calendar"></i> <span>Book Table</span>
                     </a>
-                    <a href="#customer/home" class="nav-item ${activePage === 'offers' ? 'active' : ''}">
-                        <i data-lucide="percent"></i> <span>Offers</span>
+                    <a href="#customer/profile" class="nav-item ${activePage === 'profile' ? 'active' : ''}">
+                        <i data-lucide="user"></i> <span>Profile</span>
                     </a>
                     <a href="#customer/orders" class="nav-item ${activePage === 'orders' ? 'active' : ''}">
                         <i data-lucide="receipt"></i> <span>Orders</span>
-                    </a>
-                    <a href="#customer/home" class="nav-item ${activePage === 'favorites' ? 'active' : ''}">
-                        <i data-lucide="heart"></i> <span>Favorites</span>
-                    </a>
-                    <a href="#customer/home" class="nav-item ${activePage === 'addresses' ? 'active' : ''}">
-                        <i data-lucide="map-pin"></i> <span>Addresses</span>
-                    </a>
-                    <a href="#customer/home" class="nav-item ${activePage === 'payments' ? 'active' : ''}">
-                        <i data-lucide="credit-card"></i> <span>Payments</span>
                     </a>
                     <a href="#" class="nav-item" id="btnHelpTrigger">
                         <i data-lucide="help-circle"></i> <span>Help</span>
@@ -145,13 +136,13 @@ const CustomerViews = {
                     <div class="promo-code">WELCOME50</div>
                     <img src="https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=100&q=80" alt="burger">
                 </div>
-                <div class="sidebar-profile">
+                <div class="sidebar-profile" style="cursor: pointer;" onclick="window.location.hash='#customer/profile'">
                     <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80" alt="profile" class="profile-pic">
                     <div class="profile-info">
                         <span class="profile-name">${userName}</span>
-                        <span class="profile-email">${userName.toLowerCase().replace(/[^a-z0-9]/g, '') || 'guest'}@email.com</span>
+                        <span class="profile-email" style="font-size:0.7rem; opacity:0.8;">View Profile</span>
                     </div>
-                    <a href="#auth" onclick="window.DineDirectStore.logout()" class="logout-icon-btn" title="Logout">
+                    <a href="#auth" onclick="event.stopPropagation(); window.DineDirectStore.logout()" class="logout-icon-btn" title="Logout">
                         <i data-lucide="log-out"></i>
                     </a>
                 </div>
@@ -177,9 +168,9 @@ const CustomerViews = {
                     <i data-lucide="receipt"></i>
                     <span>Orders</span>
                 </a>
-                <a href="#auth" onclick="window.DineDirectStore.logout()">
+                <a href="#customer/profile" class="${activePage === 'profile' ? 'active' : ''}">
                     <i data-lucide="user"></i>
-                    <span>Logout</span>
+                    <span>Profile</span>
                 </a>
             </nav>
         `;
@@ -2088,7 +2079,174 @@ async function handleOptionClick(label, value) {
             window.lucide.createIcons();
         }
      };
+
+    // 8. Customer Profile View
+    CustomerViews.profile = () => {
+        const store = window.DineDirectStore;
+        const session = store.getSession();
+        const profile = store.state.profile || {};
+        
+        const name = profile.name || session.currentUser || 'Guest';
+        const email = profile.email || session.userEmail || '';
+        const phone = profile.phone || '';
+        const address = profile.address || '';
+
+        // Retrieve past order history
+        const allOrders = store.state.orders || [];
+        const userOrders = allOrders.filter(o => o.customerName === name);
+
+        const orderHistoryRows = userOrders.length > 0 
+            ? userOrders.map(order => `
+                <div class="card mb-3 p-3" style="border:1px solid #e2e8f0; border-radius:8px; background:#fff;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                        <span style="font-weight:700; font-size:0.9rem; color:#1e293b;">Order ID: ${order.id}</span>
+                        <span class="badge ${order.status === 'completed' ? 'badge-success' : 'badge-warning'}" style="font-size:0.75rem; padding:4px 8px;">${order.status.toUpperCase()}</span>
+                    </div>
+                    <div style="font-size:0.8rem; color:#64748b; margin-bottom:6px;">
+                        <span>Total: <strong>₹${order.total}</strong></span> | 
+                        <span>Payment: <strong>${order.paymentStatus.toUpperCase()} (${order.paymentMethod})</strong></span>
+                    </div>
+                </div>
+            `).join('')
+            : `<div style="text-align:center; padding:20px; color:#64748b; font-size:0.85rem;">No past orders found.</div>`;
+
+        const profileHtml = `
+            <div class="customer-profile-content fade-in" style="padding: 24px; max-width: 600px; margin: 0 auto;">
+                <h2 style="font-weight:800; font-size:1.6rem; color:#8f2c24; margin-bottom:24px;">Your Profile</h2>
+
+                <!-- Profile Card Display -->
+                <div class="card p-4 mb-4" id="profileViewCard" style="border: 1px solid #e2e8f0; border-radius:12px; box-shadow:0 4px 6px rgba(0,0,0,0.05); background:#fff;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                        <h4 style="font-weight:700; color:#1e293b; margin:0;">Personal Details</h4>
+                        ${session.isLoggedIn ? `
+                            <button class="btn btn-sm btn-outline-premium" id="btnEditProfile" style="font-size:0.8rem; padding:6px 12px; color:#8f2c24; border-color:#8f2c24 !important;">
+                                <i data-lucide="edit-3"></i> Edit
+                            </button>
+                        ` : ''}
+                    </div>
+
+                    <div style="display:flex; flex-direction:column; gap:12px; font-size:0.9rem; color:#334155;">
+                        <div>
+                            <span style="font-weight:600; color:#64748b; width:120px; display:inline-block;">Full Name:</span>
+                            <strong style="color:#0f172a;">${name}</strong>
+                        </div>
+                        <div>
+                            <span style="font-weight:600; color:#64748b; width:120px; display:inline-block;">Email Address:</span>
+                            <strong>${email || 'Guest Logged In'}</strong>
+                        </div>
+                        <div>
+                            <span style="font-weight:600; color:#64748b; width:120px; display:inline-block;">Phone Number:</span>
+                            <strong>${phone || '<span style="color:#ef4444; font-style:italic;">Not registered</span>'}</strong>
+                        </div>
+                        <div>
+                            <span style="font-weight:600; color:#64748b; width:120px; display:inline-block;">Address:</span>
+                            <strong>${address || '<span style="color:#ef4444; font-style:italic;">Not registered</span>'}</strong>
+                        </div>
+                    </div>
+
+                    ${session.isLoggedIn ? `
+                        <hr style="border:0; border-top:1px solid #f1f5f9; margin:20px 0;">
+                        <button class="btn btn-outline-danger btn-block" onclick="window.DineDirectStore.logout(); window.location.hash='#auth';">
+                            <i data-lucide="log-out"></i> Sign Out
+                        </button>
+                    ` : `
+                        <hr style="border:0; border-top:1px solid #f1f5f9; margin:20px 0;">
+                        <div style="text-align:center;">
+                            <p style="font-size:0.85rem; color:#64748b; margin-bottom:12px;">You are currently logged in as a guest.</p>
+                            <a href="#auth" class="btn btn-primary" style="font-size:0.85rem; font-weight:600;">Sign In / Register</a>
+                        </div>
+                    `}
+                </div>
+
+                <!-- Profile Edit Form (Hidden by default) -->
+                <form id="profileEditForm" class="card p-4 mb-4 d-none" style="border: 1px solid #e2e8f0; border-radius:12px; box-shadow:0 4px 6px rgba(0,0,0,0.05); background:#fff;">
+                    <h4 style="font-weight:700; color:#1e293b; margin-bottom:20px;">Edit Profile</h4>
+                    
+                    <div class="form-group mb-3">
+                        <label style="font-weight:600; font-size:0.85rem; color:#475569; margin-bottom:6px; display:block;">Full Name</label>
+                        <input type="text" id="editProfileName" class="form-control" value="${name}" required style="width:100%;">
+                    </div>
+                    
+                    <div class="form-group mb-3">
+                        <label style="font-weight:600; font-size:0.85rem; color:#475569; margin-bottom:6px; display:block;">Phone Number</label>
+                        <input type="tel" id="editProfilePhone" class="form-control" value="${phone}" required style="width:100%;">
+                    </div>
+                    
+                    <div class="form-group mb-4">
+                        <label style="font-weight:600; font-size:0.85rem; color:#475569; margin-bottom:6px; display:block;">Delivery Address</label>
+                        <textarea id="editProfileAddress" class="form-control" rows="2" required style="width:100%; resize:none;">${address}</textarea>
+                    </div>
+
+                    <div style="display:flex; gap:10px;">
+                        <button type="submit" class="btn btn-primary" style="flex:1;">Save Changes</button>
+                        <button type="button" class="btn btn-outline-secondary" id="btnCancelEdit">Cancel</button>
+                    </div>
+                </form>
+
+                <!-- Order History -->
+                <h3 style="font-weight:700; font-size:1.2rem; color:#1e293b; margin-bottom:16px;">Order History</h3>
+                ${orderHistoryRows}
+            </div>
+        `;
+        return CustomerViews.wrapLayout(profileHtml, 'profile');
+    };
+
+    // 9. Profile Listeners
+    CustomerViews.setupProfileListeners = () => {
+        const btnEditProfile = document.getElementById('btnEditProfile');
+        const btnCancelEdit = document.getElementById('btnCancelEdit');
+        const profileViewCard = document.getElementById('profileViewCard');
+        const profileEditForm = document.getElementById('profileEditForm');
+
+        if (btnEditProfile && profileEditForm && profileViewCard) {
+            btnEditProfile.addEventListener('click', () => {
+                profileViewCard.classList.add('d-none');
+                profileEditForm.classList.remove('d-none');
+            });
+        }
+
+        if (btnCancelEdit && profileEditForm && profileViewCard) {
+            btnCancelEdit.addEventListener('click', () => {
+                profileEditForm.classList.add('d-none');
+                profileViewCard.classList.remove('d-none');
+            });
+        }
+
+        if (profileEditForm) {
+            profileEditForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const name = document.getElementById('editProfileName').value.trim();
+                const phone = document.getElementById('editProfilePhone').value.trim();
+                const address = document.getElementById('editProfileAddress').value.trim();
+
+                const store = window.DineDirectStore;
+                const session = store.getSession();
+
+                if (!session.userId) {
+                    if (window.showToast) window.showToast('❌ Session expired. Please log in.');
+                    return;
+                }
+
+                if (window.showToast) window.showToast('💾 Saving profile...');
+
+                try {
+                    const success = await store.saveUserProfile({
+                        id: session.userId,
+                        name,
+                        email: session.userEmail,
+                        phone,
+                        address
+                    });
+                    if (success) {
+                        if (window.showToast) window.showToast('✅ Profile updated!');
+                        if (window.Router) window.Router();
+                    }
+                } catch (err) {
+                    if (window.showToast) window.showToast(`❌ Error saving profile: ${err.message}`);
+                }
+            });
+        }
+    };
  
  window.CustomerViews = CustomerViews;
  export default CustomerViews;
-

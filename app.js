@@ -79,52 +79,43 @@ const createAuthView = () => {
                             </div>
                         </div>
 
-                        <!-- Customer Step 1: Contact Form -->
-                        <form id="customerForm" class="login">
-                            <div class="form-group inputBox">
-                                <label style="color:#8f2c24; font-size:0.8rem; font-weight:600;">Phone Number or Email</label>
-                                <input type="text" class="form-control" id="customerEmail" placeholder="Enter details to continue" required>
-                            </div>
-                            <button type="submit" class="btn btn-primary btn-block mb-3" style="box-shadow: 0 4px 12px rgba(143, 44, 36, 0.3);">
-                                <i data-lucide="arrow-right"></i> Continue
+                        <!-- Customer Step 1: Login Form (Google OAuth) -->
+                        <div id="customerLoginForm" class="login">
+                            <button type="button" class="btn btn-outline-premium btn-block mb-3" id="btnGoogleLogin" style="background:#fff !important; color:#4285F4; border:1px solid #dadce0 !important; font-weight:600; display:flex; align-items:center; justify-content:center; gap:10px; box-shadow:0 2px 4px rgba(0,0,0,0.08);">
+                                <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.63-.06-1.25-.16-1.84H9v3.47h4.84c-.21 1.12-.84 2.07-1.79 2.7v2.25h2.9c1.7-1.56 2.69-3.86 2.69-6.58z"/><path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.2l-2.9-2.25c-.8.54-1.83.86-3.06.86-2.35 0-4.34-1.58-5.05-3.7H.94v2.32C2.42 16.02 5.48 18 9 18z"/><path fill="#FBBC05" d="M3.95 10.71a5.4 5.4 0 0 1 0-3.42V4.97H.94a9 9 0 0 0 0 8.06l3.01-2.32z"/><path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35L15 2A9 9 0 0 0 .94 4.97l3.01 2.32C4.66 5.16 6.65 3.58 9 3.58z"/></svg>
+                                Sign in with Google
                             </button>
-                            <div class="text-center">
+                            
+                            <div class="text-center mb-3">
                                 <button type="button" class="btn btn-outline-premium btn-block" id="btnGuestContinue" style="color:#8f2c24; border-color:#8f2c24 !important;">
                                     <i data-lucide="user-plus"></i> Continue as Guest
                                 </button>
                             </div>
-                        </form>
 
-                        <!-- Customer Step 2: OTP & Name Form -->
-                        <form id="customerOtpForm" class="d-none animate-fade-in login">
-                            <div class="form-group inputBox">
-                                <label style="color:#8f2c24; font-size:0.8rem; font-weight:600;">Your Full Name</label>
-                                <input type="text" class="form-control" id="customerNameInput" placeholder="e.g. John Doe" required>
-                            </div>
-                            <div class="form-group">
-                                <label style="color:#8f2c24; font-size:0.8rem; display:block; margin-bottom:8px; font-weight:600;">6-Digit OTP Code</label>
-                                <div style="display:flex; gap:6px; justify-content:space-between; margin-bottom:8px;">
-                                    <input type="text" class="form-control otp-digit" maxlength="1" style="text-align:center; font-size:1.3rem; font-weight:bold; padding:10px 0 !important; width:36px; height:46px; background:#fff !important; border:1.5px solid #cbd5e1 !important; color:#1e293b !important;" required>
-                                    <input type="text" class="form-control otp-digit" maxlength="1" style="text-align:center; font-size:1.3rem; font-weight:bold; padding:10px 0 !important; width:36px; height:46px; background:#fff !important; border:1.5px solid #cbd5e1 !important; color:#1e293b !important;" required disabled>
-                                    <input type="text" class="form-control otp-digit" maxlength="1" style="text-align:center; font-size:1.3rem; font-weight:bold; padding:10px 0 !important; width:36px; height:46px; background:#fff !important; border:1.5px solid #cbd5e1 !important; color:#1e293b !important;" required disabled>
-                                    <input type="text" class="form-control otp-digit" maxlength="1" style="text-align:center; font-size:1.3rem; font-weight:bold; padding:10px 0 !important; width:36px; height:46px; background:#fff !important; border:1.5px solid #cbd5e1 !important; color:#1e293b !important;" required disabled>
-                                    <input type="text" class="form-control otp-digit" maxlength="1" style="text-align:center; font-size:1.3rem; font-weight:bold; padding:10px 0 !important; width:36px; height:46px; background:#fff !important; border:1.5px solid #cbd5e1 !important; color:#1e293b !important;" required disabled>
-                                    <input type="text" class="form-control otp-digit" maxlength="1" style="text-align:center; font-size:1.3rem; font-weight:bold; padding:10px 0 !important; width:36px; height:46px; background:#fff !important; border:1.5px solid #cbd5e1 !important; color:#1e293b !important;" required disabled>
-                                </div>
-                                <p class="text-muted" style="font-size:0.75rem; text-align:left; color:#8f2c24 !important; opacity:0.8;">
-                                    Code sent to <strong id="otpSentTarget">user@example.com</strong>
-                                </p>
-                            </div>
-                            <button type="submit" class="btn btn-primary btn-block mb-3" style="box-shadow: 0 4px 12px rgba(143, 44, 36, 0.3);">
-                                <i data-lucide="shield-check"></i> Verify & Login
-                            </button>
-                            <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.85rem; padding-top:8px;">
-                                <a href="#" id="btnBackToLogin" style="color:#8f2c24; text-decoration:none; font-weight:600; opacity:0.8;">
-                                    <i data-lucide="arrow-left" style="width:14px;height:14px;vertical-align:middle;margin-right:2px;"></i> Back
+                            <!-- Connection Settings Toggle Link -->
+                            <div class="text-center">
+                                <a href="#" id="toggleConnectionSettings" style="color:#64748b; font-size:0.75rem; text-decoration:none;">
+                                    <i data-lucide="settings" style="width:12px; height:12px; vertical-align:middle;"></i> DB Connection Settings
                                 </a>
-                                <a href="#" id="btnResendOtp" style="color:#8f2c24; text-decoration:none; font-weight:700;">Resend OTP</a>
                             </div>
-                        </form>
+
+                            <!-- Connection Settings Panel (Collapsible) -->
+                            <div id="connectionSettingsPanel" class="d-none mt-3 p-3" style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; text-align:left;">
+                                <h6 style="font-size:0.8rem; font-weight:700; color:#1e293b; margin-bottom:10px;">Custom Supabase Connection</h6>
+                                <div class="form-group mb-2">
+                                    <label style="font-size:0.7rem; color:#475569; font-weight:600;">Supabase URL</label>
+                                    <input type="text" class="form-control form-control-sm" id="customDbUrl" placeholder="https://xxx.supabase.co" style="font-size:0.75rem; height:32px;">
+                                </div>
+                                <div class="form-group mb-3">
+                                    <label style="font-size:0.7rem; color:#475569; font-weight:600;">Supabase Anon Key</label>
+                                    <input type="text" class="form-control form-control-sm" id="customDbKey" placeholder="sb_publishable_..." style="font-size:0.75rem; height:32px;">
+                                </div>
+                                <div style="display:flex; gap:8px;">
+                                    <button type="button" class="btn btn-sm btn-primary" id="btnSaveDbConfig" style="font-size:0.75rem; padding:4px 8px; flex:1;">Save & Reload</button>
+                                    <button type="button" class="btn btn-sm btn-outline-danger" id="btnClearDbConfig" style="font-size:0.75rem; padding:4px 8px;">Reset</button>
+                                </div>
+                            </div>
+                        </div>
 
                         <!-- Owner Form -->
                         <form id="ownerForm" class="d-none login">
@@ -201,56 +192,110 @@ const createOwnerSignupView = () => {
     `;
 };
 
+const createRegisterView = () => {
+    return `
+        <section class="auth-section" style="position: relative; width: 100vw; height: 100vh; overflow: hidden;">
+            <!-- Background Image -->
+            <img src="images/restaurant_background.png" class="bg">
+            <!-- Floating food overlay container -->
+            <div id="food-container" style="position: absolute; top:0; left:0; width:100%; height:100%; overflow:hidden; pointer-events:none; z-index:5;"></div>
+
+            <div class="auth-wrapper animate-fade-in" style="z-index: 10; position: relative; background: none;">
+                <div class="auth-card" style="max-width: 450px; background: rgba(255, 255, 255, 0.15) !important; backdrop-filter: blur(15px) !important; -webkit-backdrop-filter: blur(15px) !important; border: 1.5px solid rgba(255, 255, 255, 0.25) !important; box-shadow: 0 20px 40px rgba(0,0,0,0.2) !important;">
+                    <div class="auth-form-side" style="padding: 40px;">
+                        <h1 class="logo-large mb-2" style="justify-content:center;">
+                            <i data-lucide="user-check" style="color:#8f2c24;"></i> Complete Profile
+                        </h1>
+                        <p class="text-center text-muted mb-4" style="font-size:0.85rem; color:#8f2c24 !important; opacity:0.8; font-weight:600;">
+                            Please enter your details to complete registration.
+                        </p>
+                        
+                        <form id="customerRegisterForm" class="login">
+                            <div class="form-group inputBox">
+                                <label style="color:#8f2c24; font-size:0.8rem; font-weight:600;">Full Name</label>
+                                <input type="text" id="registerNameInput" class="form-control" placeholder="e.g. John Doe" required>
+                            </div>
+                            <div class="form-group inputBox">
+                                <label style="color:#8f2c24; font-size:0.8rem; font-weight:600;">Phone Number</label>
+                                <input type="tel" id="registerPhoneInput" class="form-control" placeholder="e.g. +91 98765 43210" required>
+                            </div>
+                            <div class="form-group inputBox">
+                                <label style="color:#8f2c24; font-size:0.8rem; font-weight:600;">Delivery Address</label>
+                                <textarea id="registerAddressInput" class="form-control" rows="2" placeholder="Street, City, Pincode" required style="resize:none;"></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-block mb-3" style="box-shadow: 0 4px 12px rgba(143, 44, 36, 0.3);">
+                                <i data-lucide="check-circle"></i> Save & Continue
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </section>
+    `;
+};
+
+const setupRegisterListeners = () => {
+    // Prefill name from Supabase user metadata
+    const store = window.DineDirectStore;
+    if (store.supabase && store.supabase.auth) {
+        store.supabase.auth.getSession().then(({ data: { session } }) => {
+            if (session && session.user) {
+                const nameInput = document.getElementById('registerNameInput');
+                if (nameInput && !nameInput.value) {
+                    nameInput.value = session.user.user_metadata.full_name || '';
+                }
+            }
+        });
+    }
+
+    const registerForm = document.getElementById('customerRegisterForm');
+    if (registerForm) {
+        registerForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const name = document.getElementById('registerNameInput').value.trim();
+            const phone = document.getElementById('registerPhoneInput').value.trim();
+            const address = document.getElementById('registerAddressInput').value.trim();
+
+            const session = store.getSession();
+            if (!session.userId) {
+                if (window.showToast) window.showToast('❌ User session not found. Please log in again.');
+                return;
+            }
+
+            if (window.showToast) window.showToast('💾 Saving profile...');
+
+            try {
+                const success = await store.saveUserProfile({
+                    id: session.userId,
+                    name,
+                    email: session.userEmail,
+                    phone,
+                    address
+                });
+                if (success) {
+                    if (window.showToast) window.showToast('✅ Profile saved successfully!');
+                    window.location.hash = '#customer/home';
+                }
+            } catch (err) {
+                if (window.showToast) window.showToast(`❌ Error saving profile: ${err.message}`);
+            }
+        });
+    }
+};
+
 const setupAuthListeners = () => {
     const btnCustomer = document.getElementById('btnCustomer');
     const btnOwner = document.getElementById('btnOwner');
-    const customerForm = document.getElementById('customerForm');
-    const customerOtpForm = document.getElementById('customerOtpForm');
+    const customerLoginForm = document.getElementById('customerLoginForm');
     const ownerForm = document.getElementById('ownerForm');
     const btnGuestContinue = document.getElementById('btnGuestContinue');
-    const btnBackToLogin = document.getElementById('btnBackToLogin');
-    const btnResendOtp = document.getElementById('btnResendOtp');
     const authRoleToggle = document.getElementById('authRoleToggle');
-
-    // Call backend to trigger real Supabase Auth Email OTP
-    const triggerRealOtp = async (email) => {
-        const isEmail = email.includes('@');
-        const loadMsg = isEmail 
-            ? '✉️ Sending verification code to your email...' 
-            : '📱 Sending verification code via SMS...';
-        
-        if (window.showToast) window.showToast(loadMsg);
-        try {
-            const res = await fetch('/api/auth/send-otp', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email })
-            });
-            const data = await res.json();
-            if (res.ok) {
-                if (data.isSimulated) {
-                    if (window.showToast) window.showToast(`⚠️ SMS Simulation Mode: Use code 123456`);
-                } else {
-                    const successMsg = isEmail 
-                        ? '✉️ Verification code sent! Check your inbox.' 
-                        : '📱 Verification code sent! Check your messages.';
-                    if (window.showToast) window.showToast(successMsg);
-                }
-            } else {
-                throw new Error(data.error || 'Failed to send OTP');
-            }
-        } catch (err) {
-            console.error('Error sending OTP:', err);
-            if (window.showToast) window.showToast(`❌ Error: ${err.message}`);
-        }
-    };
 
     if(btnCustomer && btnOwner) {
         btnCustomer.addEventListener('click', () => {
             btnCustomer.classList.add('active');
             btnOwner.classList.remove('active');
-            customerForm.classList.remove('d-none');
-            customerOtpForm.classList.add('d-none');
+            customerLoginForm.classList.remove('d-none');
             ownerForm.classList.add('d-none');
         });
 
@@ -258,116 +303,71 @@ const setupAuthListeners = () => {
             btnOwner.classList.add('active');
             btnCustomer.classList.remove('active');
             ownerForm.classList.remove('d-none');
-            customerForm.classList.add('d-none');
-            customerOtpForm.classList.add('d-none');
+            customerLoginForm.classList.add('d-none');
         });
     }
 
-    if(customerForm) {
-        customerForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const contact = document.getElementById('customerEmail').value;
-            
-            // Show OTP step
-            document.getElementById('otpSentTarget').textContent = contact;
-            customerForm.classList.add('d-none');
-            customerOtpForm.classList.remove('d-none');
-            authRoleToggle.classList.add('d-none'); // Hide toggle in OTP screen
-
-            // Trigger OTP
-            triggerRealOtp(contact);
-
-            // Focus first digit
-            const firstDigit = document.querySelector('.otp-digit');
-            if (firstDigit) firstDigit.focus();
-        });
-    }
-
-    // OTP Input digits focus transitions
-    const otpDigits = document.querySelectorAll('.otp-digit');
-    otpDigits.forEach((digit, idx) => {
-        digit.addEventListener('input', (e) => {
-            // Allow only numbers
-            digit.value = digit.value.replace(/[^0-9]/g, '');
-            
-            if (digit.value.length === 1 && idx < otpDigits.length - 1) {
-                otpDigits[idx + 1].removeAttribute('disabled');
-                otpDigits[idx + 1].focus();
+    // Google OAuth login trigger
+    const btnGoogleLogin = document.getElementById('btnGoogleLogin');
+    if (btnGoogleLogin) {
+        btnGoogleLogin.addEventListener('click', async () => {
+            const store = window.DineDirectStore;
+            if (!store.supabase) {
+                if (window.showToast) window.showToast('❌ Supabase not initialized. Check your settings.');
+                return;
             }
-        });
-
-        digit.addEventListener('keydown', (e) => {
-            if (e.key === 'Backspace' && digit.value === '' && idx > 0) {
-                otpDigits[idx - 1].focus();
-            }
-        });
-    });
-
-    if (btnBackToLogin) {
-        btnBackToLogin.addEventListener('click', (e) => {
-            e.preventDefault();
-            customerOtpForm.classList.add('d-none');
-            customerForm.classList.remove('d-none');
-            authRoleToggle.classList.remove('d-none');
-            
-            // Clear inputs
-            otpDigits.forEach(d => {
-                d.value = '';
-                if (d !== otpDigits[0]) d.setAttribute('disabled', 'true');
-            });
-            document.getElementById('customerNameInput').value = '';
-        });
-    }
-
-    if (btnResendOtp) {
-        btnResendOtp.addEventListener('click', (e) => {
-            e.preventDefault();
-            const contact = document.getElementById('otpSentTarget').textContent;
-            
-            // Clear current inputs
-            otpDigits.forEach(d => {
-                d.value = '';
-                if (d !== otpDigits[0]) d.setAttribute('disabled', 'true');
-            });
-            otpDigits[0].focus();
-
-            triggerRealOtp(contact);
-        });
-    }
-
-    if(customerOtpForm) {
-        customerOtpForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const name = document.getElementById('customerNameInput').value;
-            const enteredOtp = Array.from(otpDigits).map(d => d.value).join('');
-            const email = document.getElementById('otpSentTarget').textContent;
-
-            if (window.showToast) window.showToast('🔒 Verifying code...');
-
+            if (window.showToast) window.showToast('🔄 Redirecting to Google Login...');
             try {
-                const res = await fetch('/api/auth/verify-otp', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email, token: enteredOtp })
+                const { error } = await store.supabase.auth.signInWithOAuth({
+                    provider: 'google',
+                    options: {
+                        redirectTo: window.location.origin
+                    }
                 });
-                const data = await res.json();
-                if (res.ok) {
-                    window.DineDirectStore.setSession({
-                        isLoggedIn: true,
-                        userRole: 'customer',
-                        currentUser: name
-                    });
-                    window.location.hash = '#customer/home';
-                    if (window.showToast) window.showToast(`Welcome, ${name}!`);
-                } else {
-                    throw new Error(data.error || 'Invalid verification code');
-                }
+                if (error) throw error;
             } catch (err) {
-                console.error('Error verifying OTP:', err);
-                if (window.showToast) {
-                    window.showToast(`❌ Verification failed: ${err.message}`);
-                }
+                console.error(err);
+                if (window.showToast) window.showToast(`❌ Login failed: ${err.message}`);
             }
+        });
+    }
+
+    // Toggle custom DB Connection Settings
+    const toggleConnectionSettings = document.getElementById('toggleConnectionSettings');
+    const connectionSettingsPanel = document.getElementById('connectionSettingsPanel');
+    if (toggleConnectionSettings && connectionSettingsPanel) {
+        toggleConnectionSettings.addEventListener('click', (e) => {
+            e.preventDefault();
+            connectionSettingsPanel.classList.toggle('d-none');
+        });
+    }
+
+    // Custom DB connection buttons
+    const btnSaveDbConfig = document.getElementById('btnSaveDbConfig');
+    const btnClearDbConfig = document.getElementById('btnClearDbConfig');
+    const customDbUrl = document.getElementById('customDbUrl');
+    const customDbKey = document.getElementById('customDbKey');
+
+    if (customDbUrl && customDbKey) {
+        customDbUrl.value = localStorage.getItem('dinedirect_supabase_url') || '';
+        customDbKey.value = localStorage.getItem('dinedirect_supabase_anon_key') || '';
+    }
+
+    if (btnSaveDbConfig) {
+        btnSaveDbConfig.addEventListener('click', () => {
+            const url = customDbUrl.value.trim();
+            const key = customDbKey.value.trim();
+            if (!url || !key) {
+                if (window.showToast) window.showToast('❌ Both URL and Key are required.');
+                return;
+            }
+            window.DineDirectStore.saveCustomConnection(url, key);
+        });
+    }
+
+    if (btnClearDbConfig) {
+        btnClearDbConfig.addEventListener('click', () => {
+            window.DineDirectStore.saveCustomConnection(null, null);
         });
     }
 
@@ -459,6 +459,10 @@ const Router = () => {
         appDiv.innerHTML = createOwnerSignupView();
         setupOwnerSignupListener();
         startFloatingFood();
+    } else if (route === '#customer/register') {
+        appDiv.innerHTML = createRegisterView();
+        setupRegisterListeners();
+        startFloatingFood();
     } else if (route === '#customer/home') {
         appDiv.innerHTML = window.CustomerViews ? window.CustomerViews.home() : 'Loading...';
         if (window.CustomerViews && window.CustomerViews.setupHomeListeners) {
@@ -494,6 +498,11 @@ const Router = () => {
         appDiv.innerHTML = window.CustomerViews && window.CustomerViews.orders ? window.CustomerViews.orders() : 'Loading...';
         if (window.CustomerViews && window.CustomerViews.setupOrdersListeners) {
             window.CustomerViews.setupOrdersListeners();
+        }
+    } else if (route === '#customer/profile') {
+        appDiv.innerHTML = window.CustomerViews && window.CustomerViews.profile ? window.CustomerViews.profile() : 'Loading...';
+        if (window.CustomerViews && window.CustomerViews.setupProfileListeners) {
+            window.CustomerViews.setupProfileListeners();
         }
     } else if (route === '#owner/dashboard') {
         appDiv.innerHTML = window.OwnerViews ? window.OwnerViews.dashboard() : 'Loading...';

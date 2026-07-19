@@ -404,30 +404,27 @@ export async function updateTableReservationStatus(restaurantId, tableNum, isRes
         .eq('num', String(tableNum));
 }
 
-export async function sendOtp(contact) {
-    const isEmail = contact.includes('@');
-    const payload = isEmail ? { email: contact } : { phone: contact };
-    
-    const { data, error } = await supabase.auth.signInWithOtp({
-        ...payload,
-        options: {
-            shouldCreateUser: true
-        }
-    });
+export async function saveProfile(profile) {
+    const { id, name, email, phone, address } = profile;
+    const { data, error } = await supabase
+        .from('profiles')
+        .upsert({
+            id,
+            name,
+            email,
+            phone,
+            address
+        });
     if (error) throw error;
     return data;
 }
 
-export async function verifyOtp(contact, token) {
-    const isEmail = contact.includes('@');
-    const payload = isEmail 
-        ? { email: contact, type: 'email' } 
-        : { phone: contact, type: 'sms' };
-
-    const { data, error } = await supabase.auth.verifyOtp({
-        ...payload,
-        token
-    });
+export async function getProfile(id) {
+    const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', id)
+        .maybeSingle();
     if (error) throw error;
     return data;
 }

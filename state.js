@@ -93,8 +93,8 @@ class DineDirectStateStore {
         // Fetch initial state from server
         this.fetchState();
 
-        // Connect Supabase Realtime for real-time sync
-        this.connectSupabaseRealtime();
+        // Initialize Supabase Client
+        this.initSupabase();
     }
 
     async fetchState() {
@@ -113,26 +113,48 @@ class DineDirectStateStore {
         }
     }
 
-    async connectSupabaseRealtime() {
+    async initSupabase() {
         try {
-            // Fetch public Supabase configuration from Express server
-            const configRes = await fetch('/api/config');
-            if (!configRes.ok) {
-                throw new Error(`Failed to fetch /api/config: ${configRes.statusText}`);
+            // Check for custom connection override in localStorage
+            let supabaseUrl = localStorage.getItem('dinedirect_supabase_url');
+            let supabaseAnonKey = localStorage.getItem('dinedirect_supabase_anon_key');
+
+            if (!supabaseUrl || !supabaseAnonKey) {
+                // Fetch public Supabase configuration from Express server
+                const configRes = await fetch('/api/config');
+                if (!configRes.ok) {
+                    throw new Error(`Failed to fetch /api/config: ${configRes.statusText}`);
+                }
+                const config = await configRes.json();
+                supabaseUrl = config.supabaseUrl;
+                supabaseAnonKey = config.supabaseAnonKey;
             }
-            const config = await configRes.json();
-            
-            if (!config.supabaseUrl || !config.supabaseAnonKey) {
-                console.warn('Supabase URL or Anon Key is missing. Realtime sync disabled.');
+
+            if (!supabaseUrl || !supabaseAnonKey) {
+                console.warn('Supabase URL or Anon Key is missing.');
                 return;
             }
 
-            console.log('Initializing Supabase Realtime client...');
+            console.log('Initializing Supabase client...');
             const { createClient } = window.supabase;
-            const supabase = createClient(config.supabaseUrl, config.supabaseAnonKey);
+            this.supabase = createClient(supabaseUrl, supabaseAnonKey);
 
+            // Connect Realtime
+            this.connectSupabaseRealtime();
+
+            // Set up Auth state change listener
+            this.setupAuthListener();
+
+        } catch (err) {
+            console.error('Failed to initialize Supabase client:', err);
+        }
+    }
+
+    connectSupabaseRealtime() {
+        if (!this.supabase) return;
+        try {
             // Subscribe to all database changes in the public schema
-            const channel = supabase.channel('dinedirect-db-changes')
+            const channel = this.supabase.channel('dinedirect-db-changes')
                 .on(
                     'postgres_changes',
                     {
@@ -149,9 +171,91 @@ class DineDirectStateStore {
                 });
         } catch (err) {
             console.error('Failed to connect to Supabase Realtime:', err);
-            console.log('Retrying Realtime connection in 5 seconds...');
-            setTimeout(() => this.connectSupabaseRealtime(), 5000);
         }
+    }
+
+    setupAuthListener() {
+        if (!this.supabase) return;
+        this.supabase.auth.onAuthStateChange(async (event, session) => {
+            console.log('Auth event change:', event, session);
+            if (session && session.user) {
+                const user = session.user;
+                // Update internal session
+                const name = user.user_metadata.full_name || user.email.split('@')[0];
+                this.setSession({
+                    isLoggedIn: true,
+                    userRole: 'customer',
+                    currentUser: name,
+                    userEmail: user.email,
+                    userId: user.id
+                });
+                
+                // Fetch customer profile
+                await this.fetchUserProfile(user.id);
+            } else {
+                if (this.state.session.userRole === 'customer') {
+                    this.setSession({
+                        isLoggedIn: false,
+                        userRole: null,
+                        currentUser: null,
+                        userEmail: null,
+                        userId: null
+                    });
+                    this.state.profile = null;
+                }
+            }
+        });
+    }
+
+    async fetchUserProfile(userId) {
+        try {
+            const res = await fetch(`/api/profile/${userId}`);
+            if (res.ok) {
+                const profile = await res.json();
+                this.state.profile = profile || null;
+                this._notify();
+                
+                // If logged in, but profile details are missing, redirect to register
+                if (this.state.session.isLoggedIn && (!profile || !profile.phone || !profile.address)) {
+                    window.location.hash = '#customer/register';
+                }
+            }
+        } catch (err) {
+            console.error('Error fetching user profile:', err);
+        }
+    }
+
+    async saveUserProfile(profileData) {
+        try {
+            const res = await fetch('/api/profile', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(profileData)
+            });
+            const data = await res.json();
+            if (res.ok) {
+                this.state.profile = { ...this.state.profile, ...profileData };
+                this.setSession({ currentUser: profileData.name });
+                this._notify();
+                return true;
+            } else {
+                throw new Error(data.error || 'Failed to save profile');
+            }
+        } catch (err) {
+            console.error('Error saving user profile:', err);
+            throw err;
+        }
+    }
+
+    saveCustomConnection(url, anonKey) {
+        if (url && anonKey) {
+            localStorage.setItem('dinedirect_supabase_url', url);
+            localStorage.setItem('dinedirect_supabase_anon_key', anonKey);
+        } else {
+            localStorage.removeItem('dinedirect_supabase_url');
+            localStorage.removeItem('dinedirect_supabase_anon_key');
+        }
+        window.location.reload();
     }
 
     _notify() {
@@ -187,7 +291,14 @@ class DineDirectStateStore {
         this._notify();
     }
 
-    logout() {
+    async logout() {
+        if (this.supabase && this.state.session.userRole === 'customer') {
+            try {
+                await this.supabase.auth.signOut();
+            } catch (err) {
+                console.error('Error signing out of Supabase:', err);
+            }
+        }
         this.state.session = {
             userRole: null,
             currentUser: null,
@@ -195,6 +306,7 @@ class DineDirectStateStore {
             activeTableNum: null
         };
         this.state.cart = {};
+        this.state.profile = null;
         try {
             localStorage.removeItem('dinedirect_session');
             localStorage.removeItem('dinedirect_cart');

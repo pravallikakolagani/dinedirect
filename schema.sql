@@ -80,3 +80,13 @@ CREATE TABLE chat_messages (
     message TEXT NOT NULL,
     timestamp BIGINT NOT NULL
 );
+
+-- Create Profiles Table for Google Authenticated Users
+CREATE TABLE profiles (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    email TEXT NOT NULL UNIQUE,
+    phone TEXT,
+    address TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+);

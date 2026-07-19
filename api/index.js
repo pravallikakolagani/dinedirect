@@ -22,8 +22,8 @@ import {
     sendChatMessage,
     updateRestaurantSetup,
     updateTableReservationStatus,
-    sendOtp,
-    verifyOtp
+    saveProfile,
+    getProfile
 } from '../database.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -70,62 +70,30 @@ app.get('/api/config', (req, res) => {
     });
 });
 
-// 0.b Send OTP to email/phone
-app.post('/api/auth/send-otp', async (req, res) => {
+// 0.b Save or update customer profile
+app.post('/api/profile', async (req, res) => {
     try {
-        const contact = req.body.email || req.body.contact;
-        if (!contact) {
-            return res.status(400).json({ error: 'Email or phone number is required' });
+        const profile = req.body;
+        if (!profile.id || !profile.email || !profile.name) {
+            return res.status(400).json({ error: 'id, email, and name are required' });
         }
-        
-        try {
-            await sendOtp(contact);
-            res.json({ success: true });
-        } catch (authErr) {
-            const isEmail = contact.includes('@');
-            // If SMS provider is not configured, trigger simulation fallback
-            if (!isEmail && (authErr.message.includes('provider') || authErr.message.includes('SMS') || authErr.message.includes('sms'))) {
-                console.log(`[SMS Simulation] Fallback triggered for ${contact}. Use code 123456`);
-                return res.json({ 
-                    success: true, 
-                    isSimulated: true, 
-                    message: 'SMS provider not configured in Supabase. Simulating OTP code: 123456' 
-                });
-            }
-            throw authErr;
-        }
+        const data = await saveProfile(profile);
+        res.json({ success: true, data });
     } catch (err) {
-        console.error('Error sending OTP:', err);
+        console.error('Error saving profile:', err);
         res.status(500).json({ error: err.message });
     }
 });
 
-// 0.c Verify OTP
-app.post('/api/auth/verify-otp', async (req, res) => {
+// 0.c Get customer profile
+app.get('/api/profile/:id', async (req, res) => {
     try {
-        const contact = req.body.email || req.body.contact;
-        const { token } = req.body;
-        if (!contact || !token) {
-            return res.status(400).json({ error: 'Contact detail and token are required' });
-        }
-        
-        const isEmail = contact.includes('@');
-        // Bypass verification for simulated SMS OTP
-        if (!isEmail && token === '123456') {
-            console.log(`[SMS Simulation] Successfully verified simulated OTP for ${contact}`);
-            return res.json({ 
-                success: true, 
-                isSimulated: true,
-                user: { email: null, phone: contact },
-                session: null
-            });
-        }
-
-        const data = await verifyOtp(contact, token);
-        res.json({ success: true, user: data.user, session: data.session });
+        const { id } = req.params;
+        const profile = await getProfile(id);
+        res.json(profile || null);
     } catch (err) {
-        console.error('Error verifying OTP:', err);
-        res.status(400).json({ error: err.message });
+        console.error('Error getting profile:', err);
+        res.status(500).json({ error: err.message });
     }
 });
 
