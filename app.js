@@ -93,9 +93,9 @@ const createAuthView = () => {
                             </div>
 
                             <!-- Connection Settings Toggle Link -->
-                            <div class="text-center">
-                                <a href="#" id="toggleConnectionSettings" style="color:#64748b; font-size:0.75rem; text-decoration:none;">
-                                    <i data-lucide="settings" style="width:12px; height:12px; vertical-align:middle;"></i> DB Connection Settings
+                            <div class="text-center" style="margin-top: 10px;">
+                                <a href="#" id="toggleConnectionSettings" style="color:#ffffff !important; font-size:0.85rem; text-decoration:underline; font-weight:600; display:inline-flex; align-items:center; gap:4px; opacity:0.95;">
+                                    <i data-lucide="settings" style="width:14px; height:14px; vertical-align:middle;"></i> DB Connection Settings
                                 </a>
                             </div>
 
