@@ -511,11 +511,15 @@ const CustomerViews = {
         
         if (minInput && maxInput) {
             const handleRadiusChange = () => {
-                const minRaw = minInput.value.trim();
-                const maxRaw = maxInput.value.trim();
+                let minVal = parseFloat(minInput.value);
+                let maxVal = parseFloat(maxInput.value);
                 
-                const minVal = minRaw === '' ? 0 : (parseFloat(minRaw) || 0);
-                const maxVal = maxRaw === '' ? Infinity : (parseFloat(maxRaw) || Infinity);
+                if (isNaN(minVal) || minVal < 0) minVal = 0;
+                if (isNaN(maxVal) || maxVal < 0) maxVal = Infinity;
+                
+                // Set input values back cleanly
+                minInput.value = minVal;
+                maxInput.value = maxVal === Infinity ? '' : maxVal;
                 
                 window.customerMinRadius = minVal;
                 window.customerMaxRadius = maxVal;

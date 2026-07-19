@@ -304,7 +304,13 @@ app.get('/api/google-restaurants', async (req, res) => {
     try {
         const lat = parseFloat(req.query.lat);
         const lng = parseFloat(req.query.lng);
-        const radius = parseFloat(req.query.radius) || 5000; // default 5km
+        
+        let radius = parseFloat(req.query.radius);
+        if (isNaN(radius) || radius <= 0 || radius === Infinity) {
+            radius = 5000; // default 5km
+        } else if (radius > 50000) {
+            radius = 50000; // clamp to 50km max for Google API safety
+        }
 
         if (isNaN(lat) || isNaN(lng)) {
             return res.status(400).json({ error: 'lat and lng parameters are required' });
