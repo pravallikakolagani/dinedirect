@@ -622,50 +622,170 @@ const CustomerViews = {
             });
         });
 
+        const loadGooglePlaces = async () => {
+            const listContainer = document.getElementById('homeRestaurantList');
+            if (!listContainer) return;
+            
+            const lat = window.customerLocation.lat;
+            const lng = window.customerLocation.lng;
+            const maxRadKm = window.customerMaxRadius !== undefined ? window.customerMaxRadius : 5;
+            const radiusMeters = maxRadKm * 1000;
+            
+            const searchInput = document.getElementById('restaurantSearch');
+            const query = searchInput ? searchInput.value.toLowerCase().trim() : '';
+            const activeCard = document.querySelector('#homeCategories .category-card.active');
+            const category = activeCard ? activeCard.getAttribute('data-category') : 'All';
+            
+            // Remove existing google restaurants
+            const existingGooglePlaces = document.querySelectorAll('#homeRestaurantList .google-restaurant-card');
+            existingGooglePlaces.forEach(el => el.remove());
+            
+            const loadingIndicator = document.createElement('div');
+            loadingIndicator.className = 'text-center text-muted google-loading-indicator';
+            loadingIndicator.style.gridColumn = '1 / -1';
+            loadingIndicator.style.padding = '20px';
+            loadingIndicator.innerHTML = `<div class="spinner-border spinner-border-sm text-primary" role="status"></div> Searching Google Places nearby...`;
+            listContainer.appendChild(loadingIndicator);
+            
+            try {
+                const googleRest = await window.DineDirectStore.fetchGoogleRestaurants(lat, lng, radiusMeters);
+                loadingIndicator.remove();
+                
+                const registeredRests = window.DineDirectStore.getRestaurants();
+                const unifiedList = [];
+                
+                // 1. Add registered restaurants matching filters
+                registeredRests.forEach(r => {
+                    const dist = calculateDistance(
+                        window.customerLocation.lat,
+                        window.customerLocation.lng,
+                        r.latitude,
+                        r.longitude
+                    );
+                    
+                    const nameMatch = r.name.toLowerCase().includes(query) || 
+                                      r.address.toLowerCase().includes(query) ||
+                                      (r.cuisines && r.cuisines.toLowerCase().includes(query)) ||
+                                      r.menu.some(item => item.name.toLowerCase().includes(query));
+                    
+                    let categoryMatch = true;
+                    if (category !== 'All') {
+                        categoryMatch = r.menu.some(item => item.category === category);
+                    }
+                    
+                    const minLimit = window.customerMinRadius !== undefined ? window.customerMinRadius : 0;
+                    const maxLimit = window.customerMaxRadius !== undefined ? window.customerMaxRadius : Infinity;
+                    const radiusMatch = dist >= minLimit && dist <= maxLimit;
+                    
+                    if (nameMatch && categoryMatch && radiusMatch) {
+                        unifiedList.push({
+                            ...r,
+                            distance: dist,
+                            type: 'registered'
+                        });
+                    }
+                });
+                
+                // 2. Add Google Places restaurants matching filters
+                googleRest.forEach(g => {
+                    const dist = g.distance;
+                    
+                    const nameMatch = g.name.toLowerCase().includes(query) || 
+                                      g.address.toLowerCase().includes(query) ||
+                                      (g.cuisines && g.cuisines.toLowerCase().includes(query));
+                    
+                    let categoryMatch = category === 'All';
+                    if (category !== 'All') {
+                        const catKeyword = category.toLowerCase().replace(/s$/, '');
+                        categoryMatch = g.cuisines.toLowerCase().includes(catKeyword);
+                    }
+                    
+                    const minLimit = window.customerMinRadius !== undefined ? window.customerMinRadius : 0;
+                    const maxLimit = window.customerMaxRadius !== undefined ? window.customerMaxRadius : Infinity;
+                    const radiusMatch = dist >= minLimit && dist <= maxLimit;
+                    
+                    if (nameMatch && categoryMatch && radiusMatch) {
+                        unifiedList.push({
+                            ...g,
+                            type: 'google'
+                        });
+                    }
+                });
+                
+                // 3. Sort unified list by distance!
+                unifiedList.sort((a, b) => a.distance - b.distance);
+                
+                // 4. Render the list!
+                listContainer.innerHTML = unifiedList.map(rest => {
+                    if (rest.type === 'registered') {
+                        return `
+                            <div class="restaurant-card" data-id="${rest.id}" data-distance="${rest.distance}" onclick="window.location.hash='#customer/restaurant/${rest.id}'">
+                                <div class="card-img-pane" style="background-image: url('${rest.id === 'r1' ? 'https://images.unsplash.com/photo-1631515243349-e0cb75fb8d3a?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60' : 'https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&w=500&q=60'}');">
+                                    <span class="delivery-time-badge">${rest.deliveryTime || '20-30 min'}</span>
+                                    <span style="position: absolute; bottom: 10px; left: 10px; background: rgba(26,26,26,0.85); color: white; padding: 4px 8px; border-radius: 8px; font-size: 0.75rem; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; z-index: 5;">
+                                        <i data-lucide="navigation-2" style="width: 12px; height: 12px; color: var(--primary);"></i>
+                                        ${rest.distance} km
+                                    </span>
+                                    <button class="fav-heart-btn" onclick="event.stopPropagation(); this.classList.toggle('active');"><i data-lucide="heart"></i></button>
+                                </div>
+                                <div class="card-info-pane">
+                                    <div class="card-title-row">
+                                        <h4>${rest.name}</h4>
+                                        <span class="card-rating"><i data-lucide="star"></i> ${rest.rating || '4.0'}</span>
+                                    </div>
+                                    <p class="card-cuisines">${rest.cuisines || 'Cuisines'}</p>
+                                    <div class="card-price-fee" style="display: flex; justify-content: space-between; align-items: center;">
+                                        <span>$$ • Min. order $10</span>
+                                        <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: bold;">${rest.address}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    } else {
+                        const defaultImg = rest.name.toLowerCase().includes('coffee') || rest.cuisines.toLowerCase().includes('bakery') || rest.name.toLowerCase().includes('cafe')
+                            ? 'https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&w=500&q=60'
+                            : 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=500&q=60';
+                        return `
+                            <div class="restaurant-card google-restaurant-card" data-id="${rest.id}" data-distance="${rest.distance}" onclick="window.location.hash='#customer/restaurant/${rest.id}'" style="border:1.5px solid rgba(66, 133, 244, 0.25);">
+                                <div class="card-img-pane" style="background-image: url('${defaultImg}');">
+                                    <span class="delivery-time-badge" style="background:#4285f4; color:white;">${rest.deliveryTime}</span>
+                                    <span style="position: absolute; top: 10px; right: 10px; background: #4285f4; color: white; padding: 4px 8px; border-radius: 8px; font-size: 0.7rem; font-weight: bold; z-index: 5; display: inline-flex; align-items: center; gap: 4px;">
+                                        <i data-lucide="info" style="width: 10px; height: 10px;"></i> Google Places
+                                    </span>
+                                    <span style="position: absolute; bottom: 10px; left: 10px; background: rgba(26,26,26,0.85); color: white; padding: 4px 8px; border-radius: 8px; font-size: 0.75rem; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; z-index: 5;">
+                                        <i data-lucide="navigation-2" style="width: 12px; height: 12px; color: #4285f4;"></i>
+                                        ${rest.distance} km
+                                    </span>
+                                </div>
+                                <div class="card-info-pane">
+                                    <div class="card-title-row">
+                                        <h4 style="color:#1a73e8;">${rest.name}</h4>
+                                        <span class="card-rating" style="background:rgba(66, 133, 244, 0.1); color:#1a73e8;"><i data-lucide="star"></i> ${rest.rating}</span>
+                                    </div>
+                                    <p class="card-cuisines">${rest.cuisines}</p>
+                                    <div class="card-price-fee" style="display: flex; justify-content: space-between; align-items: center;">
+                                        <span>$$ • External Partner</span>
+                                        <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: bold; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; max-width: 180px;">${rest.address}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }
+                }).join('');
+                
+                if (window.lucide) window.lucide.createIcons();
+            } catch (err) {
+                console.error(err);
+                if (loadingIndicator) loadingIndicator.remove();
+            }
+        };
+
         function filterRestaurants(category, searchQuery) {
-            const query = searchQuery.toLowerCase().trim();
-            const restaurants = window.DineDirectStore.getRestaurants();
-
-            restCards.forEach(card => {
-                const restId = card.getAttribute('data-id');
-                const rest = restaurants.find(r => r.id === restId);
-                if (!rest) return;
-
-                const nameMatch = rest.name.toLowerCase().includes(query) || 
-                                  rest.address.toLowerCase().includes(query) ||
-                                  (rest.cuisines && rest.cuisines.toLowerCase().includes(query)) ||
-                                  rest.menu.some(item => item.name.toLowerCase().includes(query));
-                
-                let categoryMatch = true;
-                if (category !== 'All') {
-                    categoryMatch = rest.menu.some(item => item.category === category);
-                }
-
-                // Radius filter match
-                const dist = calculateDistance(
-                    window.customerLocation.lat,
-                    window.customerLocation.lng,
-                    rest.latitude,
-                    rest.longitude
-                );
-                
-                const minLimit = window.customerMinRadius !== undefined ? window.customerMinRadius : 0;
-                const maxLimit = window.customerMaxRadius !== undefined ? window.customerMaxRadius : Infinity;
-                
-                const radiusMatch = dist >= minLimit && dist <= maxLimit;
-
-                if (nameMatch && categoryMatch && radiusMatch) {
-                    card.classList.remove('d-none');
-                } else {
-                    card.classList.add('d-none');
-                }
-            });
+            loadGooglePlaces();
         }
 
         // Run initial filter on load to apply current radius
-        const activeCard = document.querySelector('#homeCategories .category-card.active');
-        const category = activeCard ? activeCard.getAttribute('data-category') : 'All';
-        filterRestaurants(category, document.getElementById('restaurantSearch').value || '');
+        loadGooglePlaces();
 
         // Top picks add button wiring
         document.querySelectorAll('.pick-add-btn').forEach(btn => {

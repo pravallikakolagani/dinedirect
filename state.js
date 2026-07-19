@@ -365,7 +365,42 @@ class DineDirectStateStore {
     }
 
     getRestaurant(id) {
+        if (id && id.startsWith('g_')) {
+            const googleRest = (this.state.googleRestaurants || []).find(r => r.id === id);
+            if (googleRest) {
+                if (!googleRest.menu) {
+                    googleRest.menu = [
+                        { id: `${id}_m1`, name: 'Special Mutton Biryani', price: 380, desc: 'Fragrant basmati rice cooked with tender mutton and authentic spices.', category: 'Biryani', type: 'non-veg', img: 'https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?ixlib=rb-1.2.1&auto=format&fit=crop&w=200&q=60' },
+                        { id: `${id}_m2`, name: 'Butter Chicken Masala', price: 290, desc: 'Succulent chicken tikka pieces in a rich, buttery tomato gravy.', category: 'Curries', type: 'non-veg', img: 'https://images.unsplash.com/photo-1603894584373-5ac82b2ae398?auto=format&fit=crop&w=200&q=60' },
+                        { id: `${id}_m3`, name: 'Paneer Butter Masala', price: 260, desc: 'Cottage cheese cubes in a creamy tomato gravy.', category: 'Curries', type: 'veg', img: 'https://images.unsplash.com/photo-1567188040759-fb8a883dc6d8?ixlib=rb-1.2.1&auto=format&fit=crop&w=200&q=60' },
+                        { id: `${id}_m4`, name: 'Rumali Roti', price: 40, desc: 'Extremely thin, soft flatbread.', category: 'Breads', type: 'veg', img: 'https://images.unsplash.com/photo-1534080391025-aa7c08365f8c?auto=format&fit=crop&w=200&q=60' },
+                        { id: `${id}_m5`, name: 'Double Ka Meetha', price: 120, desc: 'Traditional Hyderabadi bread pudding dessert.', category: 'Desserts', type: 'veg', img: 'https://images.unsplash.com/photo-1587314168485-3236d6710814?auto=format&fit=crop&w=200&q=60' }
+                    ];
+                    googleRest.tables = [
+                        { num: '1', status: 'available' },
+                        { num: '2', status: 'available' },
+                        { num: '3', status: 'available' }
+                    ];
+                }
+                return googleRest;
+            }
+        }
         return this.state.restaurants.find(r => r.id === id);
+    }
+
+    async fetchGoogleRestaurants(lat, lng, radius) {
+        try {
+            const res = await fetch(`/api/google-restaurants?lat=${lat}&lng=${lng}&radius=${radius}`);
+            if (res.ok) {
+                const googleRest = await res.json();
+                this.state.googleRestaurants = googleRest || [];
+                this._notify();
+                return this.state.googleRestaurants;
+            }
+        } catch (err) {
+            console.error('Error fetching Google restaurants:', err);
+        }
+        return [];
     }
 
     async registerRestaurant(email, name, address, password) {

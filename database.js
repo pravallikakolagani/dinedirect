@@ -247,10 +247,24 @@ export async function placeOrder(restaurantId, tableNum, items, paymentMethod, c
     const orders = state.orders;
     const id = 'o_' + (1000 + orders.length + 1);
 
-    const { data: rest } = await supabase.from('restaurants').select('*').eq('id', restaurantId).single();
-    if (!rest) throw new Error('Restaurant not found');
+    const isGoogleRest = restaurantId && restaurantId.startsWith('g_');
+    let menu = [];
 
-    const { data: menu } = await supabase.from('menu_items').select('*').eq('restaurantId', restaurantId);
+    if (!isGoogleRest) {
+        const { data: rest } = await supabase.from('restaurants').select('*').eq('id', restaurantId).single();
+        if (!rest) throw new Error('Restaurant not found');
+        const { data: dbMenu } = await supabase.from('menu_items').select('*').eq('restaurantId', restaurantId);
+        menu = dbMenu || [];
+    } else {
+        // Mock menu definition for Google Places simulation
+        menu = [
+            { id: `${restaurantId}_m1`, name: 'Special Mutton Biryani', price: 380 },
+            { id: `${restaurantId}_m2`, name: 'Butter Chicken Masala', price: 290 },
+            { id: `${restaurantId}_m3`, name: 'Paneer Butter Masala', price: 260 },
+            { id: `${restaurantId}_m4`, name: 'Rumali Roti', price: 40 },
+            { id: `${restaurantId}_m5`, name: 'Double Ka Meetha', price: 120 }
+        ];
+    }
 
     let total = 0;
     const orderItems = Object.keys(items).map(itemId => {
@@ -290,7 +304,7 @@ export async function placeOrder(restaurantId, tableNum, items, paymentMethod, c
     }));
     await supabase.from('order_items').insert(dbOrderItems);
 
-    if (tableNum) {
+    if (tableNum && !isGoogleRest) {
         await updateTableStatus(restaurantId, tableNum, 'occupied');
     }
 
