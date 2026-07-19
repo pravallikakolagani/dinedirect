@@ -227,20 +227,30 @@ class DineDirectStateStore {
 
     async saveUserProfile(profileData) {
         try {
+            const { password, ...dbProfileData } = profileData;
+            
+            // Save to profile database
             const res = await fetch('/api/profile', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(profileData)
+                body: JSON.stringify(dbProfileData)
             });
             const data = await res.json();
-            if (res.ok) {
-                this.state.profile = { ...this.state.profile, ...profileData };
-                this.setSession({ currentUser: profileData.name });
-                this._notify();
-                return true;
-            } else {
+            
+            if (!res.ok) {
                 throw new Error(data.error || 'Failed to save profile');
             }
+
+            // If password is provided, set it in Supabase auth account
+            if (password) {
+                const { error: pwdErr } = await this.supabase.auth.updateUser({ password });
+                if (pwdErr) throw pwdErr;
+            }
+
+            this.state.profile = { ...this.state.profile, ...dbProfileData };
+            this.setSession({ currentUser: dbProfileData.name });
+            this._notify();
+            return true;
         } catch (err) {
             console.error('Error saving user profile:', err);
             throw err;
@@ -252,19 +262,29 @@ class DineDirectStateStore {
         const { error } = await this.supabase.auth.signInWithOtp({
             email,
             options: {
-                shouldCreateUser: true
+                shouldCreateUser: true,
+                emailRedirectTo: window.location.origin
             }
         });
         if (error) throw error;
         return true;
     }
 
-    async verifyEmailOtp(email, token) {
+    async loginWithEmailPassword(email, password) {
         if (!this.supabase) throw new Error('Supabase client not initialized');
-        const { data, error } = await this.supabase.auth.verifyOtp({
+        const { data, error } = await this.supabase.auth.signInWithPassword({
             email,
-            token,
-            type: 'email'
+            password
+        });
+        if (error) throw error;
+        return data;
+    }
+
+    async signUpWithEmailPassword(email, password) {
+        if (!this.supabase) throw new Error('Supabase client not initialized');
+        const { data, error } = await this.supabase.auth.signUp({
+            email,
+            password
         });
         if (error) throw error;
         return data;

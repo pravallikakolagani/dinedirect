@@ -79,33 +79,33 @@ const createAuthView = () => {
                             </div>
                         </div>
 
-                        <!-- Customer Step 1: Login Form (Email OTP) -->
+                        <!-- Customer Step 1: Login Form (Email & Password / Magic Link) -->
                         <div id="customerLoginForm" class="login">
-                            <!-- Email Form State -->
-                            <div id="emailInputSection">
-                                <div class="form-group mb-3 text-left">
-                                    <label style="color:#8f2c24; font-size:0.85rem; font-weight:600; display:block; margin-bottom:6px;">Email Address</label>
-                                    <input type="email" class="form-control" id="loginEmailInput" placeholder="name@email.com" required style="width:100%;">
-                                </div>
-                                <button type="button" class="btn btn-primary btn-block mb-3" id="btnSendEmailOtp" style="box-shadow: 0 4px 12px rgba(143, 44, 36, 0.3);">
-                                    <i data-lucide="mail"></i> Send Verification Code
-                                </button>
+                            <div class="form-group mb-3 text-left">
+                                <label style="color:#8f2c24; font-size:0.85rem; font-weight:600; display:block; margin-bottom:6px;">Email Address</label>
+                                <input type="email" class="form-control" id="loginEmailInput" placeholder="name@email.com" required style="width:100%;">
+                            </div>
+                            <div class="form-group mb-3 text-left">
+                                <label style="color:#8f2c24; font-size:0.85rem; font-weight:600; display:block; margin-bottom:6px;">Password</label>
+                                <input type="password" class="form-control" id="loginPasswordInput" placeholder="••••••••" required style="width:100%;">
                             </div>
 
-                            <!-- OTP Verification State (Hidden by default) -->
-                            <div id="otpVerifySection" class="d-none animate-fade-in">
-                                <div style="background:rgba(143, 44, 36, 0.08); border-left:4px solid #8f2c24; padding:12px; border-radius:4px; margin-bottom:16px; text-align:left; font-size:0.8rem; color:#8f2c24; font-weight:600;">
-                                    📧 We sent a 6-digit code to <span id="sentEmailText" style="text-decoration:underline;"></span>. Please check your inbox.
-                                </div>
-                                <div class="form-group mb-3 text-left">
-                                    <label style="color:#8f2c24; font-size:0.85rem; font-weight:600; display:block; margin-bottom:6px;">Verification Code</label>
-                                    <input type="text" class="form-control text-center" id="loginOtpCode" placeholder="123456" maxlength="6" style="width:100%; font-size:1.4rem; letter-spacing:8px; font-weight:700;">
-                                </div>
-                                <button type="button" class="btn btn-primary btn-block mb-2" id="btnVerifyEmailOtp" style="box-shadow: 0 4px 12px rgba(143, 44, 36, 0.3);">
-                                    <i data-lucide="shield-check"></i> Verify & Log In
+                            <div style="display:flex; flex-direction:column; gap:10px; margin-bottom:16px;">
+                                <button type="button" class="btn btn-primary btn-block" id="btnLoginEmailPassword" style="box-shadow: 0 4px 12px rgba(143, 44, 36, 0.3);">
+                                    <i data-lucide="log-in"></i> Log In
                                 </button>
-                                <button type="button" class="btn btn-secondary btn-block mb-3" id="btnBackToEmail" style="font-size:0.85rem; padding:8px 16px;">
-                                    ← Change Email
+                                <button type="button" class="btn btn-outline-premium btn-block" id="btnSignUpEmailPassword" style="border-color:#8f2c24 !important; color:#8f2c24 !important;">
+                                    <i data-lucide="user-plus"></i> Sign Up (New Account)
+                                </button>
+                                
+                                <div style="display:flex; align-items:center; margin:10px 0;">
+                                    <hr style="flex:1; border:0; border-top:1px solid rgba(143,44,36,0.15);">
+                                    <span style="padding:0 10px; font-size:0.75rem; color:#8f2c24; font-weight:600; opacity:0.8;">OR</span>
+                                    <hr style="flex:1; border:0; border-top:1px solid rgba(143,44,36,0.15);">
+                                </div>
+                                
+                                <button type="button" class="btn btn-secondary btn-block" id="btnSendMagicLink" style="font-size:0.85rem; padding:10px 12px;">
+                                    <i data-lucide="mail"></i> Send Login Link to Email
                                 </button>
                             </div>
                             
@@ -246,6 +246,10 @@ const createRegisterView = () => {
                                 <label style="color:#8f2c24; font-size:0.8rem; font-weight:600;">Delivery Address</label>
                                 <textarea id="registerAddressInput" class="form-control" rows="2" placeholder="Street, City, Pincode" required style="resize:none;"></textarea>
                             </div>
+                            <div class="form-group inputBox">
+                                <label style="color:#8f2c24; font-size:0.8rem; font-weight:600;">Create a Password (Optional)</label>
+                                <input type="password" id="registerPasswordInput" class="form-control" placeholder="•••••••• (Min 6 chars)">
+                            </div>
                             <button type="submit" class="btn btn-primary btn-block mb-3" style="box-shadow: 0 4px 12px rgba(143, 44, 36, 0.3);">
                                 <i data-lucide="check-circle"></i> Save & Continue
                             </button>
@@ -278,6 +282,7 @@ const setupRegisterListeners = () => {
             const name = document.getElementById('registerNameInput').value.trim();
             const phone = document.getElementById('registerPhoneInput').value.trim();
             const address = document.getElementById('registerAddressInput').value.trim();
+            const password = document.getElementById('registerPasswordInput').value.trim() || null;
 
             const session = store.getSession();
             if (!session.userId) {
@@ -293,7 +298,8 @@ const setupRegisterListeners = () => {
                     name,
                     email: session.userEmail,
                     phone,
-                    address
+                    address,
+                    password
                 });
                 if (success) {
                     if (window.showToast) window.showToast('✅ Profile saved successfully!');
@@ -330,18 +336,71 @@ const setupAuthListeners = () => {
         });
     }
 
-    // Email OTP Authentication handlers
-    const btnSendEmailOtp = document.getElementById('btnSendEmailOtp');
-    const btnVerifyEmailOtp = document.getElementById('btnVerifyEmailOtp');
-    const btnBackToEmail = document.getElementById('btnBackToEmail');
-    const emailInputSection = document.getElementById('emailInputSection');
-    const otpVerifySection = document.getElementById('otpVerifySection');
+    // Email & Password and Magic Link Authentication handlers
+    const btnLoginEmailPassword = document.getElementById('btnLoginEmailPassword');
+    const btnSignUpEmailPassword = document.getElementById('btnSignUpEmailPassword');
+    const btnSendMagicLink = document.getElementById('btnSendMagicLink');
     const loginEmailInput = document.getElementById('loginEmailInput');
-    const loginOtpCode = document.getElementById('loginOtpCode');
-    const sentEmailText = document.getElementById('sentEmailText');
+    const loginPasswordInput = document.getElementById('loginPasswordInput');
 
-    if (btnSendEmailOtp) {
-        btnSendEmailOtp.addEventListener('click', async () => {
+    if (btnLoginEmailPassword) {
+        btnLoginEmailPassword.addEventListener('click', async () => {
+            const email = loginEmailInput.value.trim();
+            const password = loginPasswordInput.value.trim();
+            if (!email || !email.includes('@')) {
+                if (window.showToast) window.showToast('❌ Please enter a valid email address.');
+                return;
+            }
+            if (!password || password.length < 6) {
+                if (window.showToast) window.showToast('❌ Password must be at least 6 characters.');
+                return;
+            }
+            const store = window.DineDirectStore;
+            if (!store.supabase) {
+                if (window.showToast) window.showToast('❌ Supabase not initialized. Check connection settings.');
+                return;
+            }
+            if (window.showToast) window.showToast('🔑 Logging in...');
+            try {
+                await store.loginWithEmailPassword(email, password);
+                if (window.showToast) window.showToast('✅ Login successful!');
+            } catch (err) {
+                console.error(err);
+                if (window.showToast) window.showToast(`❌ Login failed: ${err.message}`);
+            }
+        });
+    }
+
+    if (btnSignUpEmailPassword) {
+        btnSignUpEmailPassword.addEventListener('click', async () => {
+            const email = loginEmailInput.value.trim();
+            const password = loginPasswordInput.value.trim();
+            if (!email || !email.includes('@')) {
+                if (window.showToast) window.showToast('❌ Please enter a valid email address.');
+                return;
+            }
+            if (!password || password.length < 6) {
+                if (window.showToast) window.showToast('❌ Password must be at least 6 characters.');
+                return;
+            }
+            const store = window.DineDirectStore;
+            if (!store.supabase) {
+                if (window.showToast) window.showToast('❌ Supabase not initialized. Check connection settings.');
+                return;
+            }
+            if (window.showToast) window.showToast('📝 Creating account...');
+            try {
+                await store.signUpWithEmailPassword(email, password);
+                if (window.showToast) window.showToast('✅ Account created! Check your email to confirm if required.');
+            } catch (err) {
+                console.error(err);
+                if (window.showToast) window.showToast(`❌ Sign Up failed: ${err.message}`);
+            }
+        });
+    }
+
+    if (btnSendMagicLink) {
+        btnSendMagicLink.addEventListener('click', async () => {
             const email = loginEmailInput.value.trim();
             if (!email || !email.includes('@')) {
                 if (window.showToast) window.showToast('❌ Please enter a valid email address.');
@@ -352,46 +411,14 @@ const setupAuthListeners = () => {
                 if (window.showToast) window.showToast('❌ Supabase not initialized. Check connection settings.');
                 return;
             }
-            if (window.showToast) window.showToast('✉️ Sending verification code...');
+            if (window.showToast) window.showToast('✉️ Sending login link...');
             try {
                 await store.sendEmailOtp(email);
-                if (window.showToast) window.showToast('✅ Code sent! Check your inbox.');
-                sentEmailText.textContent = email;
-                emailInputSection.classList.add('d-none');
-                otpVerifySection.classList.remove('d-none');
-                if (window.lucide) window.lucide.createIcons();
+                if (window.showToast) window.showToast('📧 Login link sent! Please check your email inbox.');
             } catch (err) {
                 console.error(err);
                 if (window.showToast) window.showToast(`❌ Send failed: ${err.message}`);
             }
-        });
-    }
-
-    if (btnVerifyEmailOtp) {
-        btnVerifyEmailOtp.addEventListener('click', async () => {
-            const email = loginEmailInput.value.trim();
-            const token = loginOtpCode.value.trim();
-            if (!token || token.length < 6) {
-                if (window.showToast) window.showToast('❌ Please enter a valid 6-digit code.');
-                return;
-            }
-            const store = window.DineDirectStore;
-            if (window.showToast) window.showToast('🔑 Verifying code...');
-            try {
-                await store.verifyEmailOtp(email, token);
-                if (window.showToast) window.showToast('✅ Login successful!');
-            } catch (err) {
-                console.error(err);
-                if (window.showToast) window.showToast(`❌ Incorrect code: ${err.message}`);
-            }
-        });
-    }
-
-    if (btnBackToEmail) {
-        btnBackToEmail.addEventListener('click', () => {
-            otpVerifySection.classList.add('d-none');
-            emailInputSection.classList.remove('d-none');
-            loginOtpCode.value = '';
         });
     }
 
