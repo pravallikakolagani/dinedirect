@@ -79,12 +79,35 @@ const createAuthView = () => {
                             </div>
                         </div>
 
-                        <!-- Customer Step 1: Login Form (Google OAuth) -->
+                        <!-- Customer Step 1: Login Form (Email OTP) -->
                         <div id="customerLoginForm" class="login">
-                            <button type="button" class="btn btn-outline-premium btn-block mb-3" id="btnGoogleLogin" style="background:#fff !important; color:#4285F4; border:1px solid #dadce0 !important; font-weight:600; display:flex; align-items:center; justify-content:center; gap:10px; box-shadow:0 2px 4px rgba(0,0,0,0.08);">
-                                <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.63-.06-1.25-.16-1.84H9v3.47h4.84c-.21 1.12-.84 2.07-1.79 2.7v2.25h2.9c1.7-1.56 2.69-3.86 2.69-6.58z"/><path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.2l-2.9-2.25c-.8.54-1.83.86-3.06.86-2.35 0-4.34-1.58-5.05-3.7H.94v2.32C2.42 16.02 5.48 18 9 18z"/><path fill="#FBBC05" d="M3.95 10.71a5.4 5.4 0 0 1 0-3.42V4.97H.94a9 9 0 0 0 0 8.06l3.01-2.32z"/><path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35L15 2A9 9 0 0 0 .94 4.97l3.01 2.32C4.66 5.16 6.65 3.58 9 3.58z"/></svg>
-                                Sign in with Google
-                            </button>
+                            <!-- Email Form State -->
+                            <div id="emailInputSection">
+                                <div class="form-group mb-3 text-left">
+                                    <label style="color:#8f2c24; font-size:0.85rem; font-weight:600; display:block; margin-bottom:6px;">Email Address</label>
+                                    <input type="email" class="form-control" id="loginEmailInput" placeholder="name@email.com" required style="width:100%;">
+                                </div>
+                                <button type="button" class="btn btn-primary btn-block mb-3" id="btnSendEmailOtp" style="box-shadow: 0 4px 12px rgba(143, 44, 36, 0.3);">
+                                    <i data-lucide="mail"></i> Send Verification Code
+                                </button>
+                            </div>
+
+                            <!-- OTP Verification State (Hidden by default) -->
+                            <div id="otpVerifySection" class="d-none animate-fade-in">
+                                <div style="background:rgba(143, 44, 36, 0.08); border-left:4px solid #8f2c24; padding:12px; border-radius:4px; margin-bottom:16px; text-align:left; font-size:0.8rem; color:#8f2c24; font-weight:600;">
+                                    📧 We sent a 6-digit code to <span id="sentEmailText" style="text-decoration:underline;"></span>. Please check your inbox.
+                                </div>
+                                <div class="form-group mb-3 text-left">
+                                    <label style="color:#8f2c24; font-size:0.85rem; font-weight:600; display:block; margin-bottom:6px;">Verification Code</label>
+                                    <input type="text" class="form-control text-center" id="loginOtpCode" placeholder="123456" maxlength="6" style="width:100%; font-size:1.4rem; letter-spacing:8px; font-weight:700;">
+                                </div>
+                                <button type="button" class="btn btn-primary btn-block mb-2" id="btnVerifyEmailOtp" style="box-shadow: 0 4px 12px rgba(143, 44, 36, 0.3);">
+                                    <i data-lucide="shield-check"></i> Verify & Log In
+                                </button>
+                                <button type="button" class="btn btn-secondary btn-block mb-3" id="btnBackToEmail" style="font-size:0.85rem; padding:8px 16px;">
+                                    ← Change Email
+                                </button>
+                            </div>
                             
                             <div class="text-center mb-3">
                                 <button type="button" class="btn btn-outline-premium btn-block" id="btnGuestContinue" style="color:#8f2c24; border-color:#8f2c24 !important;">
@@ -307,28 +330,68 @@ const setupAuthListeners = () => {
         });
     }
 
-    // Google OAuth login trigger
-    const btnGoogleLogin = document.getElementById('btnGoogleLogin');
-    if (btnGoogleLogin) {
-        btnGoogleLogin.addEventListener('click', async () => {
-            const store = window.DineDirectStore;
-            if (!store.supabase) {
-                if (window.showToast) window.showToast('❌ Supabase not initialized. Check your settings.');
+    // Email OTP Authentication handlers
+    const btnSendEmailOtp = document.getElementById('btnSendEmailOtp');
+    const btnVerifyEmailOtp = document.getElementById('btnVerifyEmailOtp');
+    const btnBackToEmail = document.getElementById('btnBackToEmail');
+    const emailInputSection = document.getElementById('emailInputSection');
+    const otpVerifySection = document.getElementById('otpVerifySection');
+    const loginEmailInput = document.getElementById('loginEmailInput');
+    const loginOtpCode = document.getElementById('loginOtpCode');
+    const sentEmailText = document.getElementById('sentEmailText');
+
+    if (btnSendEmailOtp) {
+        btnSendEmailOtp.addEventListener('click', async () => {
+            const email = loginEmailInput.value.trim();
+            if (!email || !email.includes('@')) {
+                if (window.showToast) window.showToast('❌ Please enter a valid email address.');
                 return;
             }
-            if (window.showToast) window.showToast('🔄 Redirecting to Google Login...');
+            const store = window.DineDirectStore;
+            if (!store.supabase) {
+                if (window.showToast) window.showToast('❌ Supabase not initialized. Check connection settings.');
+                return;
+            }
+            if (window.showToast) window.showToast('✉️ Sending verification code...');
             try {
-                const { error } = await store.supabase.auth.signInWithOAuth({
-                    provider: 'google',
-                    options: {
-                        redirectTo: window.location.origin
-                    }
-                });
-                if (error) throw error;
+                await store.sendEmailOtp(email);
+                if (window.showToast) window.showToast('✅ Code sent! Check your inbox.');
+                sentEmailText.textContent = email;
+                emailInputSection.classList.add('d-none');
+                otpVerifySection.classList.remove('d-none');
+                if (window.lucide) window.lucide.createIcons();
             } catch (err) {
                 console.error(err);
-                if (window.showToast) window.showToast(`❌ Login failed: ${err.message}`);
+                if (window.showToast) window.showToast(`❌ Send failed: ${err.message}`);
             }
+        });
+    }
+
+    if (btnVerifyEmailOtp) {
+        btnVerifyEmailOtp.addEventListener('click', async () => {
+            const email = loginEmailInput.value.trim();
+            const token = loginOtpCode.value.trim();
+            if (!token || token.length < 6) {
+                if (window.showToast) window.showToast('❌ Please enter a valid 6-digit code.');
+                return;
+            }
+            const store = window.DineDirectStore;
+            if (window.showToast) window.showToast('🔑 Verifying code...');
+            try {
+                await store.verifyEmailOtp(email, token);
+                if (window.showToast) window.showToast('✅ Login successful!');
+            } catch (err) {
+                console.error(err);
+                if (window.showToast) window.showToast(`❌ Incorrect code: ${err.message}`);
+            }
+        });
+    }
+
+    if (btnBackToEmail) {
+        btnBackToEmail.addEventListener('click', () => {
+            otpVerifySection.classList.add('d-none');
+            emailInputSection.classList.remove('d-none');
+            loginOtpCode.value = '';
         });
     }
 

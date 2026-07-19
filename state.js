@@ -247,6 +247,29 @@ class DineDirectStateStore {
         }
     }
 
+    async sendEmailOtp(email) {
+        if (!this.supabase) throw new Error('Supabase client not initialized');
+        const { error } = await this.supabase.auth.signInWithOtp({
+            email,
+            options: {
+                shouldCreateUser: true
+            }
+        });
+        if (error) throw error;
+        return true;
+    }
+
+    async verifyEmailOtp(email, token) {
+        if (!this.supabase) throw new Error('Supabase client not initialized');
+        const { data, error } = await this.supabase.auth.verifyOtp({
+            email,
+            token,
+            type: 'email'
+        });
+        if (error) throw error;
+        return data;
+    }
+
     saveCustomConnection(url, anonKey) {
         if (url && anonKey) {
             localStorage.setItem('dinedirect_supabase_url', url);
