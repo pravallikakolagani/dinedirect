@@ -42,16 +42,7 @@ window.customerLocation = window.customerLocation || {
     lng: 78.4482
 };
 
-// Preset locations in Hyderabad
-const HYD_LOCATIONS = [
-    { name: 'Begumpet, Hyderabad', lat: 17.4375, lng: 78.4482 },
-    { name: 'Secunderabad, Hyderabad', lat: 17.4399, lng: 78.4983 },
-    { name: 'Jubilee Hills, Hyderabad', lat: 17.4312, lng: 78.4116 },
-    { name: 'Banjara Hills, Hyderabad', lat: 17.4156, lng: 78.4347 },
-    { name: 'Gachibowli, Hyderabad', lat: 17.4401, lng: 78.3489 },
-    { name: 'Hitec City, Hyderabad', lat: 17.4483, lng: 78.3741 },
-    { name: 'Hussain Sagar, Hyderabad', lat: 17.4239, lng: 78.4738 }
-];
+
 
 window.customerMinRadius = window.customerMinRadius !== undefined ? window.customerMinRadius : 0;
 window.customerMaxRadius = window.customerMaxRadius !== undefined ? window.customerMaxRadius : 10;
@@ -193,14 +184,43 @@ const CustomerViews = {
         const activeTable = session.activeTableNum;
         const restaurants = window.DineDirectStore.getRestaurants();
 
-        // Map categories to icons
+        // Gather unique categories from menu items dynamically
+        const uniqueCategories = new Set();
+        restaurants.forEach(rest => {
+            if (rest.menu) {
+                rest.menu.forEach(item => {
+                    if (item.category) {
+                        uniqueCategories.add(item.category.trim());
+                    }
+                });
+            }
+        });
+
+        const categoryIcons = {
+            'Biryani': '🍛',
+            'Dabbas': '🍱',
+            'Cafes': '☕',
+            'Coffee': '☕',
+            'Tea': '☕',
+            'Fast Food': '🍔',
+            'Burger': '🍔',
+            'Pizza': '🍕',
+            'Desserts': '🍰',
+            'Cake': '🍰',
+            'Bakery': '🥐',
+            'Chinese': '🥢',
+            'South Indian': '🫓',
+            'North Indian': '🍛',
+            'Beverages': '🥤',
+            'Drinks': '🥤'
+        };
+
         const categories = [
             { name: 'All', icon: '🍽️' },
-            { name: 'Biryani', icon: '🍛' },
-            { name: 'Dabbas', icon: '🍱' },
-            { name: 'Cafes', icon: '☕' },
-            { name: 'Fast Food', icon: '🍔' },
-            { name: 'Desserts', icon: '🍰' }
+            ...Array.from(uniqueCategories).map(catName => ({
+                name: catName,
+                icon: categoryIcons[catName] || '🍽️'
+            }))
         ];
 
         // Gather all menu items for "Top picks for you"
@@ -373,26 +393,11 @@ const CustomerViews = {
                         <h3 style="font-size:1.15rem; margin:0;"><i data-lucide="map-pin" style="color:var(--primary); vertical-align:middle; margin-right:6px;"></i> Select Location</h3>
                         <button id="btnCloseLocationModal" style="background:none; border:none; font-size:1.2rem; cursor:pointer; color:#888;">✕</button>
                     </div>
-                    <p class="text-muted" style="font-size:0.85rem; margin-bottom:16px;">Choose your location or use GPS to calculate distances to restaurants.</p>
+                    <p class="text-muted" style="font-size:0.85rem; margin-bottom:20px;">Use GPS to automatically detect your live location and calculate distances to nearby restaurants.</p>
                     
-                    <button class="btn btn-primary btn-block" id="btnUseGpsLocation" style="padding:12px; margin-bottom:16px; font-weight:700; background:var(--primary); color:white; border-radius:8px; display:flex; justify-content:center; align-items:center; gap:8px;">
+                    <button class="btn btn-primary btn-block" id="btnUseGpsLocation" style="padding:12px; font-weight:700; background:var(--primary); color:white; border-radius:8px; display:flex; justify-content:center; align-items:center; gap:8px;">
                         <i data-lucide="navigation"></i> Use My Live GPS Location
                     </button>
-                    
-                    <div style="display:flex; align-items:center; margin:12px 0;">
-                        <hr style="flex:1; border:0; border-top:1px solid #eee;">
-                        <span style="padding:0 10px; font-size:0.75rem; color:#888; font-weight:600; text-transform:uppercase;">Or select preset area</span>
-                        <hr style="flex:1; border:0; border-top:1px solid #eee;">
-                    </div>
-
-                    <div style="display:flex; flex-direction:column; gap:10px;" id="locationOptionsList">
-                        ${HYD_LOCATIONS.map(loc => `
-                            <button class="btn btn-secondary btn-block select-loc-btn ${window.customerLocation.name === loc.name ? 'active' : ''}" data-name="${loc.name}" data-lat="${loc.lat}" data-lng="${loc.lng}" style="padding:12px; text-align:left; justify-content:flex-start; border-radius:8px; border:1px solid ${window.customerLocation.name === loc.name ? 'var(--primary)' : '#ddd'}; background:${window.customerLocation.name === loc.name ? 'rgba(255,107,53,0.05)' : 'white'}; font-weight:${window.customerLocation.name === loc.name ? '700' : '500'};">
-                                <i data-lucide="map-pin" style="width:16px; height:16px; color:${window.customerLocation.name === loc.name ? 'var(--primary)' : '#888'}; margin-right:8px;"></i>
-                                ${loc.name}
-                            </button>
-                        `).join('')}
-                    </div>
                 </div>
             </div>
 
@@ -490,6 +495,102 @@ const CustomerViews = {
             });
         });
 
+        const fallbackToSimulatedGps = (silent, reason) => {
+            // Simulated coordinates (center of Hyderabad - Begumpet with a tiny random offset to feel live)
+            const baseLat = 17.4375;
+            const baseLng = 78.4482;
+            const jitterLat = (Math.random() - 0.5) * 0.012;
+            const jitterLng = (Math.random() - 0.5) * 0.012;
+            const lat = baseLat + jitterLat;
+            const lng = baseLng + jitterLng;
+
+            window.customerLocation = {
+                name: `GPS (Simulated: ${lat.toFixed(4)}, ${lng.toFixed(4)})`,
+                lat: lat,
+                lng: lng
+            };
+
+            const currentLocationText = document.getElementById('currentLocationText');
+            if (currentLocationText) {
+                currentLocationText.textContent = window.customerLocation.name;
+            }
+
+            if (locModal) {
+                locModal.classList.add('d-none');
+                locModal.style.display = 'none';
+            }
+
+            if (!silent) {
+                showToast(`⚠️ Location blocked/unavailable. Using simulated GPS!`);
+            }
+            loadGooglePlaces();
+        };
+
+        const trackLiveLocation = (silent = false) => {
+            if (!navigator.geolocation || !navigator.geolocation.getCurrentPosition) {
+                fallbackToSimulatedGps(silent, 'Geolocation not supported in this browser context (HTTP).');
+                return;
+            }
+            
+            const btnUseGpsLocation = document.getElementById('btnUseGpsLocation');
+            if (!silent) {
+                showToast('📍 Detecting your live location...');
+                if (btnUseGpsLocation) {
+                    btnUseGpsLocation.disabled = true;
+                    btnUseGpsLocation.innerHTML = `Fetching coordinates...`;
+                }
+            }
+            
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const lat = position.coords.latitude;
+                    const lng = position.coords.longitude;
+                    
+                    window.customerLocation = {
+                        name: `GPS Location (${lat.toFixed(4)}, ${lng.toFixed(4)})`,
+                        lat: lat,
+                        lng: lng
+                    };
+                    
+                    const currentLocationText = document.getElementById('currentLocationText');
+                    if (currentLocationText) {
+                        currentLocationText.textContent = window.customerLocation.name;
+                    }
+                    
+                    if (btnUseGpsLocation) {
+                        btnUseGpsLocation.disabled = false;
+                        btnUseGpsLocation.innerHTML = `<i data-lucide="navigation"></i> Use My Live GPS Location`;
+                        if (window.lucide) window.lucide.createIcons();
+                    }
+                    
+                    if (locModal) {
+                        locModal.classList.add('d-none');
+                        locModal.style.display = 'none';
+                    }
+                    
+                    if (!silent) showToast('✅ Live location active!');
+                    loadGooglePlaces();
+                },
+                (error) => {
+                    console.error('Error tracking live location:', error);
+                    
+                    if (btnUseGpsLocation) {
+                        btnUseGpsLocation.disabled = false;
+                        btnUseGpsLocation.innerHTML = `<i data-lucide="navigation"></i> Use My Live GPS Location`;
+                        if (window.lucide) window.lucide.createIcons();
+                    }
+                    
+                    let reason = 'GPS Unavailable';
+                    if (error.code === error.PERMISSION_DENIED) {
+                        reason = 'GPS Permission Denied';
+                    }
+                    
+                    fallbackToSimulatedGps(silent, reason);
+                },
+                { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+            );
+        };
+
         // Search filtering (with 300ms debounce to prevent request spamming)
         const searchInput = document.getElementById('restaurantSearch');
         let searchTimeout;
@@ -500,6 +601,12 @@ const CustomerViews = {
                     const query = e.target.value;
                     const activeCard = document.querySelector('#homeCategories .category-card.active');
                     const category = activeCard ? activeCard.getAttribute('data-category') : 'All';
+                    
+                    // Silently retrieve GPS location if search is queried and they haven't set GPS yet
+                    if (!window.customerLocation.name.startsWith('GPS Location')) {
+                        trackLiveLocation(true);
+                    }
+                    
                     filterRestaurants(category, query);
                 }, 300);
             });
@@ -566,70 +673,11 @@ const CustomerViews = {
         const btnUseGpsLocation = document.getElementById('btnUseGpsLocation');
         if (btnUseGpsLocation) {
             btnUseGpsLocation.addEventListener('click', () => {
-                if (!navigator.geolocation) {
-                    showToast('❌ Geolocation is not supported by your browser.');
-                    return;
-                }
-                
-                showToast('📍 Requesting GPS Location...');
-                btnUseGpsLocation.disabled = true;
-                btnUseGpsLocation.innerHTML = `Fetching coordinates...`;
-                
-                navigator.geolocation.getCurrentPosition(
-                    (position) => {
-                        const lat = position.coords.latitude;
-                        const lng = position.coords.longitude;
-                        
-                        window.customerLocation = {
-                            name: `GPS Location (${lat.toFixed(4)}, ${lng.toFixed(4)})`,
-                            lat: lat,
-                            lng: lng
-                        };
-                        
-                        locModal.classList.add('d-none');
-                        locModal.style.display = 'none';
-                        showToast('✅ Live location set successfully!');
-                        
-                        if (window.Router) window.Router();
-                    },
-                    (error) => {
-                        console.error('Error fetching Geolocation:', error);
-                        btnUseGpsLocation.disabled = false;
-                        btnUseGpsLocation.innerHTML = `<i data-lucide="navigation"></i> Use My Live GPS Location`;
-                        if (window.lucide) window.lucide.createIcons();
-                        
-                        let errMsg = 'Failed to get GPS location.';
-                        if (error.code === error.PERMISSION_DENIED) {
-                            errMsg = 'GPS Permission Denied. Please enable location permissions.';
-                        }
-                        showToast(`❌ ${errMsg}`);
-                    },
-                    {
-                        enableHighAccuracy: true,
-                        timeout: 8000,
-                        maximumAge: 0
-                    }
-                );
+                trackLiveLocation(false);
             });
         }
 
-        // Selection of location option
-        const locBtns = document.querySelectorAll('#locationOptionsList .select-loc-btn');
-        locBtns.forEach(btn => {
-            btn.addEventListener('click', () => {
-                const name = btn.getAttribute('data-name');
-                const lat = parseFloat(btn.getAttribute('data-lat'));
-                const lng = parseFloat(btn.getAttribute('data-lng'));
-                
-                window.customerLocation = { name, lat, lng };
-                
-                locModal.classList.add('d-none');
-                locModal.style.display = 'none';
-                
-                if (window.Router) window.Router();
-                showToast(`Location set to: ${name}`);
-            });
-        });
+
 
         const loadGooglePlaces = async () => {
             const listContainer = document.getElementById('homeRestaurantList');
@@ -807,7 +855,8 @@ const CustomerViews = {
             loadGooglePlaces();
         }
 
-        // Run initial filter on load to apply current radius
+        // Run initial filter on load to apply current radius and trigger live location tracking
+        trackLiveLocation(true);
         loadGooglePlaces();
 
         // Top picks add button wiring

@@ -2,60 +2,7 @@
 
 const STORAGE_KEY = 'dinedirect_state_v1';
 
-const DEFAULT_STATE = {
-    restaurants: [
-        {
-            id: 'r1',
-            name: 'Paradise Biryani',
-            ownerEmail: 'owner@paradise.com',
-            address: 'Secunderabad',
-            password: 'password123',
-            cuisines: 'Biryani, Mughlai',
-            rating: '4.5',
-            deliveryTime: '30-40 min',
-            deliveryFee: 'Free Delivery',
-            menu: [
-                { id: 'm1', name: 'Special Chicken Biryani', price: 350, desc: 'Aromatic basmati rice cooked with succulent chicken pieces.', category: 'Biryani', type: 'non-veg', img: 'https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?ixlib=rb-1.2.1&auto=format&fit=crop&w=200&q=60' },
-                { id: 'm2', name: 'Mutton Haleem', price: 250, desc: 'Rich, slow-cooked meat and wheat stew.', category: 'Biryani', type: 'non-veg', img: 'https://images.unsplash.com/photo-1552590635-27c2c21287f5?auto=format&fit=crop&w=200&q=60' },
-                { id: 'm3', name: 'Paneer Tikka', price: 220, desc: 'Soft paneer cubes marinated in spices and grilled.', category: 'Dabbas', type: 'veg', img: 'https://images.unsplash.com/photo-1567188040759-fb8a883dc6d8?ixlib=rb-1.2.1&auto=format&fit=crop&w=200&q=60' },
-                { id: 'm4', name: 'Diet Coke', price: 60, desc: 'Zero calorie cola refreshment.', category: 'Fast Food', type: 'veg', img: 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?auto=format&fit=crop&w=200&q=60' }
-            ],
-            tables: [
-                { num: '1', status: 'available' },
-                { num: '2', status: 'available' },
-                { num: '3', status: 'available' },
-                { num: '4', status: 'available' }
-            ]
-        },
-        {
-            id: 'r2',
-            name: 'Third Wave Coffee',
-            ownerEmail: 'coffee@thirdwave.com',
-            address: 'Jubilee Hills',
-            password: 'password123',
-            cuisines: 'Cafe, Desserts',
-            rating: '4.8',
-            deliveryTime: '15-20 min',
-            deliveryFee: 'Free Delivery',
-            menu: [
-                { id: 'tw1', name: 'Cappuccino', price: 180, desc: 'Rich espresso with smooth textured milk micro-foam.', category: 'Cafes', type: 'veg', img: 'https://images.unsplash.com/photo-1572442388796-11668a67e53d?ixlib=rb-1.2.1&auto=format&fit=crop&w=200&q=60' },
-                { id: 'tw2', name: 'Butter Croissant', price: 150, desc: 'Flaky, buttery French pastry baked daily.', category: 'Cafes', type: 'veg', img: 'https://images.unsplash.com/photo-1555507036-ab1f4038808a?ixlib=rb-1.2.1&auto=format&fit=crop&w=200&q=60' }
-            ],
-            tables: [
-                { num: '1', status: 'available' },
-                { num: '2', status: 'available' }
-            ]
-        }
-    ],
-    orders: [],
-    session: {
-        userRole: null, // 'customer' | 'owner'
-        currentUser: null,
-        activeRestaurantId: 'r1',
-        activeTableNum: null
-    },
-    cart: {} // { [restaurantId]: { [itemId]: quantity } }
-};
+
 
 class DineDirectStateStore {
     constructor() {
@@ -216,7 +163,7 @@ class DineDirectStateStore {
                 this._notify();
                 
                 // If logged in, but profile details are missing, redirect to register
-                if (this.state.session.isLoggedIn && (!profile || !profile.phone || !profile.address)) {
+                if (this.state.session.isLoggedIn && (!profile || !profile.phone)) {
                     window.location.hash = '#customer/register';
                 }
             }
@@ -268,6 +215,17 @@ class DineDirectStateStore {
         });
         if (error) throw error;
         return true;
+    }
+
+    async verifyEmailOtp(email, token) {
+        if (!this.supabase) throw new Error('Supabase client not initialized');
+        const { data, error } = await this.supabase.auth.verifyOtp({
+            email,
+            token,
+            type: 'email'
+        });
+        if (error) throw error;
+        return data;
     }
 
     async loginWithEmailPassword(email, password) {

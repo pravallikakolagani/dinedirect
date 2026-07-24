@@ -14,82 +14,18 @@ const supabase = createClient(supabaseUrl || 'https://placeholder.supabase.co', 
 
 export async function initDatabase() {
     try {
-        const { count, error } = await supabase
+        const { data, error } = await supabase
             .from('restaurants')
-            .select('*', { count: 'exact', head: true });
+            .select('id')
+            .limit(1);
         
         if (error) {
-            console.error('Error checking Supabase restaurants:', error);
-            return;
-        }
-
-        if (count === 0) {
-            console.log('Supabase database empty. Prepopulating default restaurant data...');
-            
-            // Insert Paradise Biryani
-            await supabase.from('restaurants').insert({
-                id: 'r1',
-                name: 'Paradise Biryani',
-                ownerEmail: 'owner@paradise.com',
-                address: 'Secunderabad',
-                password: 'password123',
-                cuisines: 'Biryani, Mughlai',
-                rating: '4.5',
-                deliveryTime: '30-40 min',
-                deliveryFee: 'Free Delivery',
-                latitude: 17.4399,
-                longitude: 78.4983
-            });
-
-            // Insert default menu items for r1
-            const menu1 = [
-                { id: 'm1', restaurantId: 'r1', name: 'Special Chicken Biryani', price: 350, desc: 'Aromatic basmati rice cooked with succulent chicken pieces.', category: 'Biryani', type: 'non-veg', img: 'https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?ixlib=rb-1.2.1&auto=format&fit=crop&w=200&q=60' },
-                { id: 'm2', restaurantId: 'r1', name: 'Mutton Haleem', price: 250, desc: 'Rich, slow-cooked meat and wheat stew.', category: 'Biryani', type: 'non-veg', img: 'https://images.unsplash.com/photo-1552590635-27c2c21287f5?auto=format&fit=crop&w=200&q=60' },
-                { id: 'm3', restaurantId: 'r1', name: 'Paneer Tikka', price: 220, desc: 'Soft paneer cubes marinated in spices and grilled.', category: 'Dabbas', type: 'veg', img: 'https://images.unsplash.com/photo-1567188040759-fb8a883dc6d8?ixlib=rb-1.2.1&auto=format&fit=crop&w=200&q=60' },
-                { id: 'm4', restaurantId: 'r1', name: 'Diet Coke', price: 60, desc: 'Zero calorie cola refreshment.', category: 'Fast Food', type: 'veg', img: 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?auto=format&fit=crop&w=200&q=60' }
-            ];
-            await supabase.from('menu_items').insert(menu1);
-
-            // Insert default tables for r1 (Tables 1 to 10 matching floor plan config)
-            const tables1 = [];
-            for (let i = 1; i <= 10; i++) {
-                tables1.push({ restaurantId: 'r1', num: String(i), status: 'available', isReservable: 1 });
-            }
-            await supabase.from('tables').insert(tables1);
-
-            // Insert Third Wave Coffee
-            await supabase.from('restaurants').insert({
-                id: 'r2',
-                name: 'Third Wave Coffee',
-                ownerEmail: 'coffee@thirdwave.com',
-                address: 'Jubilee Hills',
-                password: 'password123',
-                cuisines: 'Cafe, Desserts',
-                rating: '4.8',
-                deliveryTime: '15-20 min',
-                deliveryFee: 'Free Delivery',
-                latitude: 17.4312,
-                longitude: 78.4116
-            });
-
-            // Insert default menu items for r2
-            const menu2 = [
-                { id: 'tw1', restaurantId: 'r2', name: 'Cappuccino', price: 180, desc: 'Rich espresso with smooth textured milk micro-foam.', category: 'Cafes', type: 'veg', img: 'https://images.unsplash.com/photo-1572442388796-11668a67e53d?ixlib=rb-1.2.1&auto=format&fit=crop&w=200&q=60' },
-                { id: 'tw2', restaurantId: 'r2', name: 'Butter Croissant', price: 150, desc: 'Flaky, buttery French pastry baked daily.', category: 'Cafes', type: 'veg', img: 'https://images.unsplash.com/photo-1555507036-ab1f4038808a?ixlib=rb-1.2.1&auto=format&fit=crop&w=200&q=60' }
-            ];
-            await supabase.from('menu_items').insert(menu2);
-
-            // Insert default tables for r2
-            const tables2 = [
-                { restaurantId: 'r2', num: '1', status: 'available', isReservable: 1 },
-                { restaurantId: 'r2', num: '2', status: 'available', isReservable: 1 }
-            ];
-            await supabase.from('tables').insert(tables2);
-            
-            console.log('Prepopulating default data finished.');
+            console.error('Error validating Supabase connection:', error);
+        } else {
+            console.log('Successfully connected to Supabase database.');
         }
     } catch (err) {
-        console.error('Supabase initialization failed:', err);
+        console.error('Supabase connection validation failed:', err);
     }
 }
 

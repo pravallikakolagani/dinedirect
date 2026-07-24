@@ -44,29 +44,20 @@ const createAuthView = () => {
             <div id="food-container" style="position: absolute; top:0; left:0; width:100%; height:100%; overflow:hidden; pointer-events:none; z-index:5;"></div>
 
             <div class="auth-wrapper animate-fade-in" style="z-index: 10; position: relative; background: none;">
-                <div class="auth-card" style="background: rgba(255, 255, 255, 0.15) !important; backdrop-filter: blur(15px) !important; -webkit-backdrop-filter: blur(15px) !important; border: 1.5px solid rgba(255, 255, 255, 0.25) !important; box-shadow: 0 20px 40px rgba(0,0,0,0.2) !important;">
-                    <!-- Left column: Marketing banner (Desktop) -->
-                    <div class="auth-banner" style="background: linear-gradient(135deg, rgba(143, 44, 36, 0.8), rgba(255, 107, 53, 0.8)); border-right: 1px solid rgba(255, 255, 255, 0.15);">
-                        <div>
-                            <h2 class="auth-banner-title">Scan. Order.<br>Savor.</h2>
-                            <ul class="auth-banner-features">
-                                <li><i data-lucide="zap"></i> Order instantly from your table</li>
-                                <li><i data-lucide="credit-card"></i> Pay securely via mock UPI / Card</li>
-                                <li><i data-lucide="chef-hat"></i> Track preparation stage live</li>
-                                <li><i data-lucide="check-circle"></i> Direct integration with Kitchen KDS</li>
-                            </ul>
-                        </div>
-                        <p class="text-muted" style="color:rgba(255,255,255,0.7) !important; font-size:0.85rem;">
-                            Dine Direct connects customers & kitchen workflows seamlessly.
-                        </p>
-                    </div>
-
+                <div class="auth-card auth-card-single">
                     <!-- Right column: Interactive Form Pane -->
                     <div class="auth-form-side">
-                        <h1 class="logo-large mb-2">
-                            <i data-lucide="utensils-cross" style="color:#8f2c24;"></i> Dine Direct
+                        <!-- Top Icon to match sample page -->
+                        <div class="text-center mb-3">
+                            <div style="display: inline-flex; align-items: center; justify-content: center; width: 60px; height: 60px; background: rgba(255, 107, 53, 0.15); border-radius: 50%; border: 1.5px solid rgba(255, 107, 53, 0.3);">
+                                <i data-lucide="utensils-cross" style="color:#ff6b35; width:28px; height:28px;"></i>
+                            </div>
+                        </div>
+
+                        <h1 class="logo-large mb-1" style="justify-content: center; font-size: 2.2rem; background: linear-gradient(135deg, #ffffff, #ffe5d9); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+                            Dine Direct
                         </h1>
-                        <p class="text-muted mb-4" style="font-size:0.9rem; color:#8f2c24 !important; opacity:0.8; font-weight:600;">
+                        <p class="text-center mb-4" style="font-size:0.88rem; color:rgba(255,255,255,0.6) !important; font-weight:500;">
                             Your entire dining ecosystem${tableNumText}
                         </p>
                         
@@ -79,82 +70,107 @@ const createAuthView = () => {
                             </div>
                         </div>
 
-                        <!-- Customer Step 1: Login Form (Email & Password / Magic Link) -->
+                        <!-- Customer OTP Flow Forms -->
                         <div id="customerLoginForm" class="login">
-                            <div class="form-group mb-3 text-left">
-                                <label style="color:#8f2c24; font-size:0.85rem; font-weight:600; display:block; margin-bottom:6px;">Email Address</label>
-                                <input type="email" class="form-control" id="loginEmailInput" placeholder="name@email.com" required style="width:100%;">
-                            </div>
-                            <div class="form-group mb-3 text-left">
-                                <label style="color:#8f2c24; font-size:0.85rem; font-weight:600; display:block; margin-bottom:6px;">Password</label>
-                                <input type="password" class="form-control" id="loginPasswordInput" placeholder="••••••••" required style="width:100%;">
+                            <!-- Pane 1: Enter Email (Step 1) -->
+                            <div id="otpEmailPane">
+                                <div class="form-group mb-3 text-left">
+                                    <label>Email Address</label>
+                                    <input type="email" class="form-control" id="loginEmailInput" placeholder="you@example.com" required style="width:100%;">
+                                </div>
+
+                                <div style="display:flex; flex-direction:column; gap:10px; margin-bottom:20px;">
+                                    <button type="button" class="btn btn-primary btn-block" id="btnSendOtp">
+                                        <i data-lucide="send"></i> Send Verification Code
+                                    </button>
+                                </div>
+
+                                <div style="display:flex; align-items:center; margin:16px 0;">
+                                    <hr style="flex:1; border:0; border-top:1px solid rgba(255,255,255,0.12);">
+                                    <span style="padding:0 10px; font-size:0.7rem; color:rgba(255,255,255,0.4); font-weight:600; text-transform:uppercase; letter-spacing:0.05em;">Or Continue With</span>
+                                    <hr style="flex:1; border:0; border-top:1px solid rgba(255,255,255,0.12);">
+                                </div>
+
+                                <div style="display:flex; margin-bottom:20px;">
+                                    <button type="button" class="btn-outline-social" id="btnSocialGoogle" style="flex:1; display:flex; align-items:center; justify-content:center; gap:8px;">
+                                        <img src="https://www.svgrepo.com/show/475656/google-color.svg" style="width: 16px; height: 16px;" /> Google
+                                    </button>
+                                </div>
+
+                                <div class="text-center mb-3">
+                                    <button type="button" class="btn btn-outline-premium btn-block" id="btnGuestContinue">
+                                        <i data-lucide="user-check"></i> Continue as Guest
+                                    </button>
+                                </div>
                             </div>
 
-                            <div style="display:flex; flex-direction:column; gap:10px; margin-bottom:16px;">
-                                <button type="button" class="btn btn-primary btn-block" id="btnLoginEmailPassword" style="box-shadow: 0 4px 12px rgba(143, 44, 36, 0.3);">
-                                    <i data-lucide="log-in"></i> Log In
-                                </button>
-                                <button type="button" class="btn btn-outline-premium btn-block" id="btnSignUpEmailPassword" style="border-color:#8f2c24 !important; color:#8f2c24 !important;">
-                                    <i data-lucide="user-plus"></i> Sign Up (New Account)
-                                </button>
-                                
-                                <div style="display:flex; align-items:center; margin:10px 0;">
-                                    <hr style="flex:1; border:0; border-top:1px solid rgba(143,44,36,0.15);">
-                                    <span style="padding:0 10px; font-size:0.75rem; color:#8f2c24; font-weight:600; opacity:0.8;">OR</span>
-                                    <hr style="flex:1; border:0; border-top:1px solid rgba(143,44,36,0.15);">
+                            <!-- Pane 2: Enter Verification Code (Step 2) -->
+                            <div id="otpCodePane" class="d-none">
+                                <p style="font-size: 0.85rem; color: rgba(255,255,255,0.7); margin-bottom: 20px; line-height: 1.4; text-align: center;">
+                                    We have sent a 6-digit verification code to <br><strong id="otpSentEmailSpan" style="color:#ff8c5f;"></strong>.
+                                </p>
+
+                                <div class="form-group mb-3 text-left">
+                                    <label>Verification Code</label>
+                                    <input type="text" class="form-control text-center" id="loginOtpInput" placeholder="••••••" maxlength="6" style="width:100%; letter-spacing: 0.5em; font-size: 1.25rem; font-weight: 700;">
                                 </div>
-                                
-                                <button type="button" class="btn btn-secondary btn-block" id="btnSendMagicLink" style="font-size:0.85rem; padding:10px 12px;">
-                                    <i data-lucide="mail"></i> Send Login Link to Email
-                                </button>
-                            </div>
-                            
-                            <div class="text-center mb-3">
-                                <button type="button" class="btn btn-outline-premium btn-block" id="btnGuestContinue" style="color:#8f2c24; border-color:#8f2c24 !important;">
-                                    <i data-lucide="user-plus"></i> Continue as Guest
-                                </button>
+
+                                <div style="display:flex; flex-direction:column; gap:12px; margin-bottom:20px;">
+                                    <button type="button" class="btn btn-primary btn-block" id="btnVerifyOtp">
+                                        <i data-lucide="shield-check"></i> Verify & Log In
+                                    </button>
+                                </div>
+
+                                <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.8rem; padding:0 4px;">
+                                    <a href="#" id="linkChangeEmail" class="btn-link-premium">
+                                        <i data-lucide="arrow-left" style="width:12px; height:12px; display:inline-block; vertical-align:middle; margin-right:4px;"></i> Change Email
+                                    </a>
+                                    <a href="#" id="linkResendOtp" class="btn-link-premium">
+                                        <i data-lucide="refresh-cw" style="width:12px; height:12px; display:inline-block; vertical-align:middle; margin-right:4px;"></i> Resend Code
+                                    </a>
+                                </div>
                             </div>
 
                             <!-- Connection Settings Toggle Link -->
-                            <div class="text-center" style="margin-top: 10px;">
-                                <a href="#" id="toggleConnectionSettings" style="color:#ffffff !important; font-size:0.85rem; text-decoration:underline; font-weight:600; display:inline-flex; align-items:center; gap:4px; opacity:0.95;">
-                                    <i data-lucide="settings" style="width:14px; height:14px; vertical-align:middle;"></i> DB Connection Settings
+                            <div class="text-center" style="margin-top: 24px;">
+                                <a href="#" id="toggleConnectionSettings" style="color:rgba(255,255,255,0.6) !important; font-size:0.82rem; text-decoration:none; font-weight:600; display:inline-flex; align-items:center; gap:6px; opacity:0.95; transition:color 0.2s;" onmouseover="this.style.color='#ff8c5f'" onmouseout="this.style.color='rgba(255,255,255,0.6)'">
+                                    <i data-lucide="settings" style="width:13px; height:13px; vertical-align:middle;"></i> DB Connection Settings
                                 </a>
                             </div>
 
                             <!-- Connection Settings Panel (Collapsible) -->
-                            <div id="connectionSettingsPanel" class="d-none mt-3 p-3" style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; text-align:left;">
-                                <h6 style="font-size:0.8rem; font-weight:700; color:#1e293b; margin-bottom:10px;">Custom Supabase Connection</h6>
+                            <div id="connectionSettingsPanel" class="d-none mt-3 p-3" style="background:rgba(15, 23, 42, 0.4); border:1px solid rgba(255, 255, 255, 0.08); border-radius:12px; text-align:left;">
+                                <h6 style="font-size:0.8rem; font-weight:700; color:#ffffff; margin-bottom:12px;">Custom Supabase Connection</h6>
                                 <div class="form-group mb-2">
-                                    <label style="font-size:0.7rem; color:#475569; font-weight:600;">Supabase URL</label>
-                                    <input type="text" class="form-control form-control-sm" id="customDbUrl" placeholder="https://xxx.supabase.co" style="font-size:0.75rem; height:32px;">
+                                    <label style="font-size:0.7rem; color:rgba(255,255,255,0.7); font-weight:600;">Supabase URL</label>
+                                    <input type="text" class="form-control form-control-sm" id="customDbUrl" placeholder="https://xxx.supabase.co" style="font-size:0.75rem; height:32px; background:rgba(255,255,255,0.05); color:#fff; border:1px solid rgba(255,255,255,0.12);">
                                 </div>
                                 <div class="form-group mb-3">
-                                    <label style="font-size:0.7rem; color:#475569; font-weight:600;">Supabase Anon Key</label>
-                                    <input type="text" class="form-control form-control-sm" id="customDbKey" placeholder="sb_publishable_..." style="font-size:0.75rem; height:32px;">
+                                    <label style="font-size:0.7rem; color:rgba(255,255,255,0.7); font-weight:600;">Supabase Anon Key</label>
+                                    <input type="text" class="form-control form-control-sm" id="customDbKey" placeholder="sb_publishable_..." style="font-size:0.75rem; height:32px; background:rgba(255,255,255,0.05); color:#fff; border:1px solid rgba(255,255,255,0.12);">
                                 </div>
                                 <div style="display:flex; gap:8px;">
-                                    <button type="button" class="btn btn-sm btn-primary" id="btnSaveDbConfig" style="font-size:0.75rem; padding:4px 8px; flex:1;">Save & Reload</button>
-                                    <button type="button" class="btn btn-sm btn-outline-danger" id="btnClearDbConfig" style="font-size:0.75rem; padding:4px 8px;">Reset</button>
+                                    <button type="button" class="btn btn-sm btn-primary" id="btnSaveDbConfig" style="font-size:0.75rem; padding:6px 8px; flex:1; height:auto; line-height:1;">Save & Reload</button>
+                                    <button type="button" class="btn btn-sm btn-outline-premium" id="btnClearDbConfig" style="font-size:0.75rem; padding:6px 8px; height:auto; line-height:1;">Reset</button>
                                 </div>
                             </div>
                         </div>
 
                         <!-- Owner Form -->
                         <form id="ownerForm" class="d-none login">
-                            <div class="form-group inputBox">
-                                <label style="color:#8f2c24; font-size:0.8rem; font-weight:600;">Business Email</label>
-                                <input type="email" class="form-control" id="ownerEmail" placeholder="restaurant@example.com" required>
+                            <div class="form-group mb-3 text-left">
+                                <label>Business Email</label>
+                                <input type="email" class="form-control" id="ownerEmail" placeholder="restaurant@example.com" required style="width:100%;">
                             </div>
-                            <div class="form-group inputBox">
-                                <label style="color:#8f2c24; font-size:0.8rem; font-weight:600;">Password</label>
-                                <input type="password" class="form-control" id="ownerPassword" placeholder="••••••••" required>
+                            <div class="form-group mb-3 text-left">
+                                <label>Password</label>
+                                <input type="password" class="form-control" id="ownerPassword" placeholder="••••••••" required style="width:100%;">
                             </div>
-                            <button type="submit" class="btn btn-primary btn-block mb-3" style="box-shadow: 0 4px 12px rgba(143, 44, 36, 0.3);">
+                            <button type="submit" class="btn btn-primary btn-block mb-3">
                                 <i data-lucide="building"></i> Owner Login
                             </button>
-                            <p class="text-center">
-                                <a href="#owner/signup" style="font-size:0.85rem; color:#8f2c24 !important; font-weight:600; text-decoration:none;">
+                            <p class="text-center" style="font-size:0.85rem; color:rgba(255,255,255,0.5); margin:0;">
+                                <a href="#owner/signup" class="btn-link-premium" style="font-weight:600;">
                                     Register new restaurant
                                 </a>
                             </p>
@@ -224,33 +240,36 @@ const createRegisterView = () => {
             <div id="food-container" style="position: absolute; top:0; left:0; width:100%; height:100%; overflow:hidden; pointer-events:none; z-index:5;"></div>
 
             <div class="auth-wrapper animate-fade-in" style="z-index: 10; position: relative; background: none;">
-                <div class="auth-card" style="max-width: 450px; background: rgba(255, 255, 255, 0.15) !important; backdrop-filter: blur(15px) !important; -webkit-backdrop-filter: blur(15px) !important; border: 1.5px solid rgba(255, 255, 255, 0.25) !important; box-shadow: 0 20px 40px rgba(0,0,0,0.2) !important;">
-                    <div class="auth-form-side" style="padding: 40px;">
-                        <h1 class="logo-large mb-2" style="justify-content:center;">
-                            <i data-lucide="user-check" style="color:#8f2c24;"></i> Complete Profile
+                <div class="auth-card auth-card-single">
+                    <div class="auth-form-side">
+                        <!-- Top Icon -->
+                        <div class="text-center mb-3">
+                            <div style="display: inline-flex; align-items: center; justify-content: center; width: 60px; height: 60px; background: rgba(255, 107, 53, 0.15); border-radius: 50%; border: 1.5px solid rgba(255, 107, 53, 0.3);">
+                                <i data-lucide="user-check" style="color:#ff6b35; width:28px; height:28px;"></i>
+                            </div>
+                        </div>
+
+                        <h1 class="logo-large mb-1" style="justify-content: center; font-size: 2.2rem; background: linear-gradient(135deg, #ffffff, #ffe5d9); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+                            Complete Profile
                         </h1>
-                        <p class="text-center text-muted mb-4" style="font-size:0.85rem; color:#8f2c24 !important; opacity:0.8; font-weight:600;">
+                        <p class="text-center mb-4" style="font-size:0.88rem; color:rgba(255,255,255,0.6) !important; font-weight:500;">
                             Please enter your details to complete registration.
                         </p>
                         
                         <form id="customerRegisterForm" class="login">
-                            <div class="form-group inputBox">
-                                <label style="color:#8f2c24; font-size:0.8rem; font-weight:600;">Full Name</label>
-                                <input type="text" id="registerNameInput" class="form-control" placeholder="e.g. John Doe" required>
+                            <div class="form-group mb-3 text-left">
+                                <label>Full Name</label>
+                                <input type="text" id="registerNameInput" class="form-control" placeholder="e.g. John Doe" required style="width:100%;">
                             </div>
-                            <div class="form-group inputBox">
-                                <label style="color:#8f2c24; font-size:0.8rem; font-weight:600;">Phone Number</label>
-                                <input type="tel" id="registerPhoneInput" class="form-control" placeholder="e.g. +91 98765 43210" required>
+                            <div class="form-group mb-3 text-left">
+                                <label>Phone Number</label>
+                                <input type="tel" id="registerPhoneInput" class="form-control" placeholder="e.g. +91 98765 43210" required style="width:100%;">
                             </div>
-                            <div class="form-group inputBox">
-                                <label style="color:#8f2c24; font-size:0.8rem; font-weight:600;">Delivery Address</label>
-                                <textarea id="registerAddressInput" class="form-control" rows="2" placeholder="Street, City, Pincode" required style="resize:none;"></textarea>
+                            <div class="form-group mb-4 text-left">
+                                <label>Create a Password (Optional)</label>
+                                <input type="password" id="registerPasswordInput" class="form-control" placeholder="•••••••• (Min 6 chars)" style="width:100%;">
                             </div>
-                            <div class="form-group inputBox">
-                                <label style="color:#8f2c24; font-size:0.8rem; font-weight:600;">Create a Password (Optional)</label>
-                                <input type="password" id="registerPasswordInput" class="form-control" placeholder="•••••••• (Min 6 chars)">
-                            </div>
-                            <button type="submit" class="btn btn-primary btn-block mb-3" style="box-shadow: 0 4px 12px rgba(143, 44, 36, 0.3);">
+                            <button type="submit" class="btn btn-primary btn-block mb-3">
                                 <i data-lucide="check-circle"></i> Save & Continue
                             </button>
                         </form>
@@ -281,24 +300,23 @@ const setupRegisterListeners = () => {
             e.preventDefault();
             const name = document.getElementById('registerNameInput').value.trim();
             const phone = document.getElementById('registerPhoneInput').value.trim();
-            const address = document.getElementById('registerAddressInput').value.trim();
             const password = document.getElementById('registerPasswordInput').value.trim() || null;
-
+ 
             const session = store.getSession();
             if (!session.userId) {
                 if (window.showToast) window.showToast('❌ User session not found. Please log in again.');
                 return;
             }
-
+ 
             if (window.showToast) window.showToast('💾 Saving profile...');
-
+ 
             try {
                 const success = await store.saveUserProfile({
                     id: session.userId,
                     name,
                     email: session.userEmail,
                     phone,
-                    address,
+                    address: '',
                     password
                 });
                 if (success) {
@@ -320,6 +338,24 @@ const setupAuthListeners = () => {
     const btnGuestContinue = document.getElementById('btnGuestContinue');
     const authRoleToggle = document.getElementById('authRoleToggle');
 
+    // Panes
+    const otpEmailPane = document.getElementById('otpEmailPane');
+    const otpCodePane = document.getElementById('otpCodePane');
+
+    // Customer OTP buttons
+    const btnSendOtp = document.getElementById('btnSendOtp');
+    const btnVerifyOtp = document.getElementById('btnVerifyOtp');
+    const linkChangeEmail = document.getElementById('linkChangeEmail');
+    const linkResendOtp = document.getElementById('linkResendOtp');
+
+    // Customer OTP inputs
+    const loginEmailInput = document.getElementById('loginEmailInput');
+    const loginOtpInput = document.getElementById('loginOtpInput');
+    const otpSentEmailSpan = document.getElementById('otpSentEmailSpan');
+
+    // Social login buttons
+    const btnSocialGoogle = document.getElementById('btnSocialGoogle');
+
     if(btnCustomer && btnOwner) {
         btnCustomer.addEventListener('click', () => {
             btnCustomer.classList.add('active');
@@ -336,71 +372,9 @@ const setupAuthListeners = () => {
         });
     }
 
-    // Email & Password and Magic Link Authentication handlers
-    const btnLoginEmailPassword = document.getElementById('btnLoginEmailPassword');
-    const btnSignUpEmailPassword = document.getElementById('btnSignUpEmailPassword');
-    const btnSendMagicLink = document.getElementById('btnSendMagicLink');
-    const loginEmailInput = document.getElementById('loginEmailInput');
-    const loginPasswordInput = document.getElementById('loginPasswordInput');
-
-    if (btnLoginEmailPassword) {
-        btnLoginEmailPassword.addEventListener('click', async () => {
-            const email = loginEmailInput.value.trim();
-            const password = loginPasswordInput.value.trim();
-            if (!email || !email.includes('@')) {
-                if (window.showToast) window.showToast('❌ Please enter a valid email address.');
-                return;
-            }
-            if (!password || password.length < 6) {
-                if (window.showToast) window.showToast('❌ Password must be at least 6 characters.');
-                return;
-            }
-            const store = window.DineDirectStore;
-            if (!store.supabase) {
-                if (window.showToast) window.showToast('❌ Supabase not initialized. Check connection settings.');
-                return;
-            }
-            if (window.showToast) window.showToast('🔑 Logging in...');
-            try {
-                await store.loginWithEmailPassword(email, password);
-                if (window.showToast) window.showToast('✅ Login successful!');
-            } catch (err) {
-                console.error(err);
-                if (window.showToast) window.showToast(`❌ Login failed: ${err.message}`);
-            }
-        });
-    }
-
-    if (btnSignUpEmailPassword) {
-        btnSignUpEmailPassword.addEventListener('click', async () => {
-            const email = loginEmailInput.value.trim();
-            const password = loginPasswordInput.value.trim();
-            if (!email || !email.includes('@')) {
-                if (window.showToast) window.showToast('❌ Please enter a valid email address.');
-                return;
-            }
-            if (!password || password.length < 6) {
-                if (window.showToast) window.showToast('❌ Password must be at least 6 characters.');
-                return;
-            }
-            const store = window.DineDirectStore;
-            if (!store.supabase) {
-                if (window.showToast) window.showToast('❌ Supabase not initialized. Check connection settings.');
-                return;
-            }
-            if (window.showToast) window.showToast('📝 Creating account...');
-            try {
-                await store.signUpWithEmailPassword(email, password);
-                if (window.showToast) window.showToast('✅ Account created! Check your email to confirm if required.');
-            } catch (err) {
-                console.error(err);
-                if (window.showToast) window.showToast(`❌ Sign Up failed: ${err.message}`);
-            }
-        });
-    }
-
-    if (btnSendMagicLink) {
-        btnSendMagicLink.addEventListener('click', async () => {
+    // OTP Send Action
+    if (btnSendOtp) {
+        btnSendOtp.addEventListener('click', async () => {
             const email = loginEmailInput.value.trim();
             if (!email || !email.includes('@')) {
                 if (window.showToast) window.showToast('❌ Please enter a valid email address.');
@@ -411,16 +385,114 @@ const setupAuthListeners = () => {
                 if (window.showToast) window.showToast('❌ Supabase not initialized. Check connection settings.');
                 return;
             }
-            if (window.showToast) window.showToast('✉️ Sending login link...');
+            
+            if (window.showToast) window.showToast('✉️ Sending verification code...');
             try {
                 await store.sendEmailOtp(email);
-                if (window.showToast) window.showToast('📧 Login link sent! Please check your email inbox.');
+                if (window.showToast) window.showToast('📧 Verification code sent to your email!');
+                
+                // Switch panes
+                if (otpSentEmailSpan) otpSentEmailSpan.textContent = email;
+                if (otpEmailPane) otpEmailPane.classList.add('d-none');
+                if (otpCodePane) otpCodePane.classList.remove('d-none');
+                
+                // Auto focus code input
+                if (loginOtpInput) {
+                    loginOtpInput.value = '';
+                    loginOtpInput.focus();
+                }
             } catch (err) {
                 console.error(err);
-                if (window.showToast) window.showToast(`❌ Send failed: ${err.message}`);
+                if (window.showToast) window.showToast(`❌ Failed to send code: ${err.message}`);
             }
         });
     }
+
+    // OTP Verify Action
+    if (btnVerifyOtp) {
+        btnVerifyOtp.addEventListener('click', async () => {
+            const email = loginEmailInput.value.trim();
+            const token = loginOtpInput.value.trim();
+            if (!email) {
+                if (window.showToast) window.showToast('❌ Email address is missing. Please go back.');
+                return;
+            }
+            if (!token || token.length < 6) {
+                if (window.showToast) window.showToast('❌ Please enter the 6-digit verification code.');
+                return;
+            }
+            const store = window.DineDirectStore;
+            if (!store.supabase) {
+                if (window.showToast) window.showToast('❌ Supabase not initialized.');
+                return;
+            }
+            
+            if (window.showToast) window.showToast('🔑 Verifying code...');
+            try {
+                await store.verifyEmailOtp(email, token);
+                if (window.showToast) window.showToast('✅ Verification successful!');
+            } catch (err) {
+                console.error(err);
+                if (window.showToast) window.showToast(`❌ Verification failed: ${err.message}`);
+            }
+        });
+    }
+
+    // Change Email (Go back to Step 1)
+    if (linkChangeEmail) {
+        linkChangeEmail.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (otpCodePane) otpCodePane.classList.add('d-none');
+            if (otpEmailPane) otpEmailPane.classList.remove('d-none');
+            if (loginEmailInput) loginEmailInput.focus();
+        });
+    }
+
+    // Resend Code Action
+    if (linkResendOtp) {
+        linkResendOtp.addEventListener('click', async (e) => {
+            e.preventDefault();
+            const email = loginEmailInput.value.trim();
+            if (!email) return;
+            const store = window.DineDirectStore;
+            if (!store.supabase) return;
+            
+            if (window.showToast) window.showToast('✉️ Resending code...');
+            try {
+                await store.sendEmailOtp(email);
+                if (window.showToast) window.showToast('📧 A new verification code has been sent!');
+            } catch (err) {
+                console.error(err);
+                if (window.showToast) window.showToast(`❌ Resend failed: ${err.message}`);
+            }
+        });
+    }
+
+    // Social Google Sign In
+    if (btnSocialGoogle) {
+        btnSocialGoogle.addEventListener('click', async () => {
+            const store = window.DineDirectStore;
+            if (!store.supabase) {
+                if (window.showToast) window.showToast('❌ Supabase not initialized.');
+                return;
+            }
+            if (window.showToast) window.showToast('🌐 Connecting to Google...');
+            try {
+                const { error } = await store.supabase.auth.signInWithOAuth({
+                    provider: 'google',
+                    options: {
+                        redirectTo: window.location.origin
+                    }
+                });
+                if (error) throw error;
+            } catch (err) {
+                console.error(err);
+                if (window.showToast) window.showToast(`❌ Google login failed: ${err.message}`);
+            }
+        });
+    }
+
+
 
     // Toggle custom DB Connection Settings
     const toggleConnectionSettings = document.getElementById('toggleConnectionSettings');

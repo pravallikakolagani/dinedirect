@@ -577,5 +577,161 @@ h1, h2, h3, h4, h5, h6 {
     overflow: hidden;
 }
 
+/* Redesigned Single Card Centered Auth styles */
+.auth-card-single {
+    width: 100%;
+    max-width: 450px;
+    background: rgba(15, 23, 42, 0.65) !important;
+    backdrop-filter: blur(25px) !important;
+    -webkit-backdrop-filter: blur(25px) !important;
+    border: 1.5px solid rgba(255, 255, 255, 0.12) !important;
+    border-radius: 24px !important;
+    box-shadow: 0 30px 60px rgba(0, 0, 0, 0.4) !important;
+    overflow: hidden;
+    z-index: 10;
+    color: #f8fafc;
+}
+
+.auth-card-single .auth-form-side {
+    background: transparent !important;
+    padding: 40px 36px !important;
+}
+
+.auth-card-single .form-toggle {
+    background: rgba(255, 255, 255, 0.05) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    display: flex;
+    border-radius: 12px;
+    padding: 4px;
+}
+
+.auth-card-single .toggle-btn {
+    color: rgba(255, 255, 255, 0.6) !important;
+    flex: 1;
+    cursor: pointer;
+    border-radius: 8px;
+    padding: 8px;
+}
+
+.auth-card-single .toggle-btn.active {
+    background: linear-gradient(135deg, #ff6b35, #ea580c) !important;
+    color: white !important;
+    box-shadow: 0 4px 12px rgba(234, 88, 12, 0.3) !important;
+}
+
+.auth-card-single .toggle-btn:not(.active):hover {
+    color: white !important;
+    background: rgba(255, 255, 255, 0.05) !important;
+}
+
+.auth-card-single label {
+    color: rgba(255, 255, 255, 0.8) !important;
+    font-weight: 500 !important;
+    font-size: 0.82rem !important;
+    margin-bottom: 6px !important;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.auth-card-single .form-control {
+    background: rgba(255, 255, 255, 0.06) !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    color: #ffffff !important;
+    border-radius: 10px !important;
+    padding: 12px 16px !important;
+    font-size: 0.95rem !important;
+    transition: all 0.2s ease !important;
+}
+
+.auth-card-single .form-control:focus {
+    background: rgba(255, 255, 255, 0.1) !important;
+    border-color: rgba(255, 107, 53, 0.7) !important;
+    box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.25) !important;
+}
+
+.auth-card-single .form-control::placeholder {
+    color: rgba(255, 255, 255, 0.35) !important;
+}
+
+.auth-card-single .btn-primary {
+    background: linear-gradient(135deg, #ff6b35, #ea580c) !important;
+    border: none !important;
+    color: #ffffff !important;
+    border-radius: 10px !important;
+    font-weight: 600 !important;
+    padding: 12px 20px !important;
+    font-size: 0.95rem !important;
+    transition: all 0.3s ease !important;
+    box-shadow: 0 4px 15px rgba(234, 88, 12, 0.3) !important;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.auth-card-single .btn-primary:hover {
+    transform: translateY(-1px) !important;
+    box-shadow: 0 6px 20px rgba(234, 88, 12, 0.5) !important;
+    filter: brightness(1.15) !important;
+}
+
+.auth-card-single .btn-outline-premium {
+    background: transparent !important;
+    border: 1.5px solid rgba(255, 255, 255, 0.18) !important;
+    color: #ffffff !important;
+    border-radius: 10px !important;
+    font-weight: 600 !important;
+    padding: 12px 20px !important;
+    font-size: 0.95rem !important;
+    transition: all 0.2s ease !important;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.auth-card-single .btn-outline-premium:hover {
+    background: rgba(255, 255, 255, 0.08) !important;
+    border-color: rgba(255, 255, 255, 0.4) !important;
+    color: #ffffff !important;
+}
+
+.btn-outline-social {
+    background: rgba(255, 255, 255, 0.04) !important;
+    border: 1.5px solid rgba(255, 255, 255, 0.12) !important;
+    color: rgba(255, 255, 255, 0.85) !important;
+    border-radius: 10px !important;
+    padding: 11px 16px !important;
+    font-size: 0.9rem !important;
+    font-weight: 600 !important;
+    transition: all 0.2s ease !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 8px;
+    cursor: pointer !important;
+    background-color: rgba(255, 255, 255, 0.03) !important;
+}
+
+.btn-outline-social:hover {
+    background: rgba(255, 255, 255, 0.08) !important;
+    border-color: rgba(255, 255, 255, 0.3) !important;
+    color: #ffffff !important;
+    transform: translateY(-1px) !important;
+}
+
+.btn-link-premium {
+    color: #ff8c5f !important;
+    text-decoration: none;
+    font-weight: 600;
+    transition: color 0.2s ease;
+}
+
+.btn-link-premium:hover {
+    color: #ff6b35 !important;
+    text-decoration: underline;
+}
+
+
 
 
