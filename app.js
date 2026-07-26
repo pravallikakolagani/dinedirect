@@ -85,18 +85,6 @@ const createAuthView = () => {
                                     </button>
                                 </div>
 
-                                <div style="display:flex; align-items:center; margin:16px 0;">
-                                    <hr style="flex:1; border:0; border-top:1px solid rgba(255,255,255,0.12);">
-                                    <span style="padding:0 10px; font-size:0.7rem; color:rgba(255,255,255,0.4); font-weight:600; text-transform:uppercase; letter-spacing:0.05em;">Or Continue With</span>
-                                    <hr style="flex:1; border:0; border-top:1px solid rgba(255,255,255,0.12);">
-                                </div>
-
-                                <div style="display:flex; margin-bottom:20px;">
-                                    <button type="button" class="btn-outline-social" id="btnSocialGoogle" style="flex:1; display:flex; align-items:center; justify-content:center; gap:8px;">
-                                        <img src="https://www.svgrepo.com/show/475656/google-color.svg" style="width: 16px; height: 16px;" /> Google
-                                    </button>
-                                </div>
-
                                 <div class="text-center mb-3">
                                     <button type="button" class="btn btn-outline-premium btn-block" id="btnGuestContinue">
                                         <i data-lucide="user-check"></i> Continue as Guest
@@ -272,6 +260,11 @@ const createRegisterView = () => {
                             <button type="submit" class="btn btn-primary btn-block mb-3">
                                 <i data-lucide="check-circle"></i> Save & Continue
                             </button>
+                            <div class="text-center mt-3">
+                                <a href="#auth" id="btnCancelRegister" class="btn-link-premium" style="font-weight:600; font-size:0.85rem; cursor:pointer; text-decoration:none;">
+                                    Cancel & Sign Out
+                                </a>
+                            </div>
                         </form>
                     </div>
                 </div>
@@ -291,6 +284,15 @@ const setupRegisterListeners = () => {
                     nameInput.value = session.user.user_metadata.full_name || '';
                 }
             }
+        });
+    }
+
+    const btnCancelRegister = document.getElementById('btnCancelRegister');
+    if (btnCancelRegister) {
+        btnCancelRegister.addEventListener('click', async (e) => {
+            e.preventDefault();
+            await store.logout();
+            window.location.hash = '#auth';
         });
     }
 
@@ -353,8 +355,6 @@ const setupAuthListeners = () => {
     const loginOtpInput = document.getElementById('loginOtpInput');
     const otpSentEmailSpan = document.getElementById('otpSentEmailSpan');
 
-    // Social login buttons
-    const btnSocialGoogle = document.getElementById('btnSocialGoogle');
 
     if(btnCustomer && btnOwner) {
         btnCustomer.addEventListener('click', () => {
@@ -464,30 +464,6 @@ const setupAuthListeners = () => {
             } catch (err) {
                 console.error(err);
                 if (window.showToast) window.showToast(`❌ Resend failed: ${err.message}`);
-            }
-        });
-    }
-
-    // Social Google Sign In
-    if (btnSocialGoogle) {
-        btnSocialGoogle.addEventListener('click', async () => {
-            const store = window.DineDirectStore;
-            if (!store.supabase) {
-                if (window.showToast) window.showToast('❌ Supabase not initialized.');
-                return;
-            }
-            if (window.showToast) window.showToast('🌐 Connecting to Google...');
-            try {
-                const { error } = await store.supabase.auth.signInWithOAuth({
-                    provider: 'google',
-                    options: {
-                        redirectTo: window.location.origin
-                    }
-                });
-                if (error) throw error;
-            } catch (err) {
-                console.error(err);
-                if (window.showToast) window.showToast(`❌ Google login failed: ${err.message}`);
             }
         });
     }
@@ -645,7 +621,12 @@ const Router = () => {
     appDiv.innerHTML = ''; // Clear container
 
     // Routes Matcher
-    if (route === '#auth') {
+    if (route === '#home' || route === '') {
+        appDiv.innerHTML = window.MarketingViews ? window.MarketingViews.marketing() : 'Loading...';
+        if (window.MarketingViews && window.MarketingViews.setupMarketingListeners) {
+            window.MarketingViews.setupMarketingListeners();
+        }
+    } else if (route === '#auth') {
         appDiv.innerHTML = createAuthView();
         setupAuthListeners();
         startFloatingFood();
@@ -735,7 +716,7 @@ const Router = () => {
         }
     } else {
         // Default Fallback
-        window.location.hash = '#auth';
+        window.location.hash = '#home';
     }
 
     // Re-create lucide icons
