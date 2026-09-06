@@ -15,6 +15,7 @@ import {
     addTable, 
     updateTableStatus,
     placeOrder, 
+    placeGroupOrder,
     updateOrderStatus, 
     updateOrderPaymentStatus,
     createSupportAlert,
@@ -23,7 +24,9 @@ import {
     updateRestaurantSetup,
     updateTableReservationStatus,
     saveProfile,
-    getProfile
+    getProfile,
+    addReview,
+    getReviews
 } from '../database.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -216,13 +219,31 @@ app.put('/api/restaurants/:id/setup', async (req, res) => {
 // 6. Place order
 app.post('/api/orders', async (req, res) => {
     try {
-        const { restaurantId, tableNum, items, paymentMethod, customerName } = req.body;
-        const newOrder = await placeOrder(restaurantId, tableNum, items, paymentMethod, customerName);
+        const { restaurantId, tableNum, items, paymentMethod, customerName, groupOrderId, deliveryFee } = req.body;
+        const newOrder = await placeOrder(restaurantId, tableNum, items, paymentMethod, customerName, groupOrderId, deliveryFee);
         
         broadcast({ type: 'ORDER_PLACED', order: newOrder });
         res.status(201).json(newOrder);
     } catch (err) {
         console.error('Error placing order:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// 6b. Place multi-restaurant group order
+app.post('/api/orders/group', async (req, res) => {
+    try {
+        const { customerName, tableNum, paymentMethod, deliveryFee, restaurantsPayload } = req.body;
+        const result = await placeGroupOrder({ customerName, tableNum, paymentMethod, deliveryFee, restaurantsPayload });
+        
+        if (result && result.orders) {
+            result.orders.forEach(order => {
+                broadcast({ type: 'ORDER_PLACED', order });
+            });
+        }
+        res.status(201).json(result);
+    } catch (err) {
+        console.error('Error placing group order:', err);
         res.status(500).json({ error: err.message });
     }
 });
@@ -428,6 +449,34 @@ app.get('/:role/:page', (req, res, next) => {
     next();
 });
 
+// 13. Customer Reviews API
+app.post('/api/reviews', async (req, res) => {
+    try {
+        const { restaurantId, orderId, customerName, rating, tags, comment } = req.body;
+        if (!restaurantId || !rating) {
+            return res.status(400).json({ error: 'restaurantId and rating are required' });
+        }
+        const newReview = await addReview(restaurantId, orderId, customerName, rating, tags, comment);
+        broadcast({ type: 'STATE_UPDATED' });
+        res.status(201).json(newReview);
+    } catch (err) {
+        console.error('Error adding review:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.get('/api/reviews/:restaurantId', async (req, res) => {
+    try {
+        const { restaurantId } = req.params;
+        const reviews = await getReviews(restaurantId);
+        res.json(reviews);
+    } catch (err) {
+        console.error('Error fetching reviews:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Role redirection helpers
 app.get('/:role', (req, res, next) => {
     const { role } = req.params;
     if (role === 'customer') {

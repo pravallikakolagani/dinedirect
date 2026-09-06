@@ -381,15 +381,16 @@ const setupAuthListeners = () => {
                 return;
             }
             const store = window.DineDirectStore;
-            if (!store.supabase) {
-                if (window.showToast) window.showToast('❌ Supabase not initialized. Check connection settings.');
-                return;
-            }
             
             if (window.showToast) window.showToast('✉️ Sending verification code...');
             try {
-                await store.sendEmailOtp(email);
-                if (window.showToast) window.showToast('📧 Verification code sent to your email!');
+                const res = await store.sendEmailOtp(email);
+                if (res && res.isFallback) {
+                    if (window.showToast) window.showToast('🔔 Offline Mode: Demo code is 123456');
+                    if (loginOtpInput) loginOtpInput.value = '123456';
+                } else {
+                    if (window.showToast) window.showToast('📧 Verification code sent to your email!');
+                }
                 
                 // Switch panes
                 if (otpSentEmailSpan) otpSentEmailSpan.textContent = email;
@@ -398,7 +399,6 @@ const setupAuthListeners = () => {
                 
                 // Auto focus code input
                 if (loginOtpInput) {
-                    loginOtpInput.value = '';
                     loginOtpInput.focus();
                 }
             } catch (err) {
@@ -422,15 +422,12 @@ const setupAuthListeners = () => {
                 return;
             }
             const store = window.DineDirectStore;
-            if (!store.supabase) {
-                if (window.showToast) window.showToast('❌ Supabase not initialized.');
-                return;
-            }
             
             if (window.showToast) window.showToast('🔑 Verifying code...');
             try {
                 await store.verifyEmailOtp(email, token);
-                if (window.showToast) window.showToast('✅ Verification successful!');
+                if (window.showToast) window.showToast('✅ Verification successful! Welcome.');
+                window.location.hash = '#customer/home';
             } catch (err) {
                 console.error(err);
                 if (window.showToast) window.showToast(`❌ Verification failed: ${err.message}`);

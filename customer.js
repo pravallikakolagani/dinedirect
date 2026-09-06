@@ -91,11 +91,206 @@ const CustomerViews = {
         }
     },
 
+    // Tax Invoice Modal functions
+    openTaxInvoiceModal: (orderId) => {
+        const allOrders = window.DineDirectStore.state.orders || [];
+        let order = allOrders.find(o => String(o.id) === String(orderId));
+        let relatedOrders = [];
+
+        if (order && order.groupOrderId) {
+            relatedOrders = allOrders.filter(o => o.groupOrderId === order.groupOrderId);
+        } else if (!order) {
+            relatedOrders = allOrders.filter(o => o.groupOrderId === String(orderId));
+            if (relatedOrders.length > 0) order = relatedOrders[0];
+        }
+
+        if (!order) {
+            showToast('⚠️ Order details not found.');
+            return;
+        }
+
+        const isGroup = relatedOrders.length > 1;
+        const targetOrders = isGroup ? relatedOrders : [order];
+
+        // Gather restaurants
+        const restNames = targetOrders.map(o => {
+            const r = window.DineDirectStore.getRestaurant(o.restaurantId);
+            return r ? r.name : o.restaurantId;
+        });
+
+        const primaryRest = window.DineDirectStore.getRestaurant(order.restaurantId) || {
+            name: 'Dine Direct Restaurant',
+            address: 'Hyderabad, India',
+            ownerEmail: 'contact@dinedirect.in'
+        };
+
+        let subtotal = 0;
+        let deliveryFee = 0;
+
+        targetOrders.forEach(o => {
+            (o.items || []).forEach(it => {
+                subtotal += (Number(it.price) || 0) * (Number(it.qty || it.quantity) || 1);
+            });
+            deliveryFee += Number(o.deliveryFee) || 0;
+        });
+
+        if (subtotal === 0 && order.total) {
+            subtotal = Math.round(order.total / 1.10);
+        }
+
+        const cgst = Math.round(subtotal * 0.025);
+        const sgst = Math.round(subtotal * 0.025);
+        const serviceCharge = Math.round(subtotal * 0.05);
+        const grandTotal = subtotal + cgst + sgst + serviceCharge + deliveryFee;
+        const invoiceNum = isGroup ? `INV-GRP-${String(order.groupOrderId).replace(/\D/g, '').slice(-5)}` : `INV-2026-${String(order.id).replace(/\D/g, '').padStart(5, '0')}`;
+        const orderDate = new Date(order.timestamp || Date.now()).toLocaleString('en-IN', {
+            dateStyle: 'medium',
+            timeStyle: 'short'
+        });
+
+        const isPaid = order.paymentMethod === 'pay_now' || order.paymentStatus === 'paid' || order.paymentMethod === 'card' || order.paymentMethod === 'upi';
+
+        // Remove old modal if present
+        const oldModal = document.getElementById('taxInvoiceModal');
+        if (oldModal) oldModal.remove();
+
+        const modalOverlay = document.createElement('div');
+        modalOverlay.id = 'taxInvoiceModal';
+        modalOverlay.className = 'tax-invoice-modal-overlay animate-fade-in';
+        modalOverlay.innerHTML = `
+            <div class="tax-invoice-sheet" id="taxInvoicePrintTarget">
+                <button onclick="window.CustomerViews.closeTaxInvoiceModal()" style="position:absolute; top:16px; right:16px; background:#f1f5f9; border:none; border-radius:50%; width:32px; height:32px; cursor:pointer; font-size:1rem; display:flex; align-items:center; justify-content:center; color:#64748b;">✕</button>
+
+                <div class="invoice-header-title">
+                    <h2>${isGroup ? restNames.join(' & ') : primaryRest.name}</h2>
+                    <p style="margin:4px 0 0; font-size:0.85rem; color:#64748b;">${isGroup ? 'Multi-Vendor Kitchen Delivery Network • Hyderabad' : primaryRest.address}</p>
+                    <div style="margin-top:6px;">
+                        <span class="invoice-tax-badge">${isGroup ? 'Combined Multi-Vendor Tax Invoice (GST)' : 'Tax Invoice (GST)'}</span>
+                    </div>
+                    <div style="font-size:0.75rem; color:#64748b; margin-top:6px;">
+                        <strong>GSTIN:</strong> 36AAACD1234F1Z5 &nbsp;|&nbsp; <strong>FSSAI:</strong> 13622011000452
+                    </div>
+                </div>
+
+                <div class="invoice-meta-grid">
+                    <div>
+                        <span style="color:#64748b; display:block; font-size:0.75rem;">Invoice Number</span>
+                        <strong>${invoiceNum}</strong>
+                    </div>
+                    <div>
+                        <span style="color:#64748b; display:block; font-size:0.75rem;">Order Date & Time</span>
+                        <strong>${orderDate}</strong>
+                    </div>
+                    <div>
+                        <span style="color:#64748b; display:block; font-size:0.75rem;">Customer Name</span>
+                        <strong>${order.customerName || 'Guest'}</strong>
+                    </div>
+                    <div>
+                        <span style="color:#64748b; display:block; font-size:0.75rem;">Order Mode</span>
+                        <strong>${isGroup ? `Multi-Restaurant Order (${targetOrders.length} Kitchens)` : (order.tableNum && order.tableNum !== 'Online' ? `Table ${order.tableNum} (Dine-in)` : 'Takeaway / Delivery')}</strong>
+                    </div>
+                </div>
+
+                <table class="invoice-table">
+                    <thead>
+                        <tr>
+                            <th style="width:45%;">Item Description</th>
+                            <th style="text-align:center; width:15%;">Rate</th>
+                            <th style="text-align:center; width:15%;">Qty</th>
+                            <th style="text-align:right; width:25%;">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${targetOrders.map(ord => {
+                            const r = window.DineDirectStore.getRestaurant(ord.restaurantId) || { name: 'Restaurant' };
+                            const headerRow = isGroup ? `
+                                <tr style="background:#f8fafc; border-top:1px solid #e2e8f0; border-bottom:1px solid #e2e8f0;">
+                                    <td colspan="4" style="font-weight:700; color:var(--primary); padding:8px 10px; font-size:0.85rem;">
+                                        🏪 ${r.name} (Ticket #${ord.id})
+                                    </td>
+                                </tr>
+                            ` : '';
+                            const itemRows = (ord.items || []).map(it => {
+                                const q = it.qty || it.quantity || 1;
+                                return `
+                                <tr>
+                                    <td><strong>${it.name}</strong></td>
+                                    <td style="text-align:center;">₹${it.price}</td>
+                                    <td style="text-align:center;">${q}</td>
+                                    <td style="text-align:right; font-weight:600;">₹${it.price * q}</td>
+                                </tr>
+                            `}).join('');
+                            return headerRow + itemRows;
+                        }).join('')}
+                    </tbody>
+                </table>
+
+                <div class="invoice-totals-section">
+                    <div class="invoice-total-row">
+                        <span style="color:#64748b;">Subtotal (Taxable Food Value)</span>
+                        <span>₹${subtotal}</span>
+                    </div>
+                    <div class="invoice-total-row">
+                        <span style="color:#64748b;">Central GST (CGST @ 2.5%)</span>
+                        <span>₹${cgst}</span>
+                    </div>
+                    <div class="invoice-total-row">
+                        <span style="color:#64748b;">State GST (SGST @ 2.5%)</span>
+                        <span>₹${sgst}</span>
+                    </div>
+                    <div class="invoice-total-row">
+                        <span style="color:#64748b;">Restaurant Service Charge (5%)</span>
+                        <span>₹${serviceCharge}</span>
+                    </div>
+                    ${deliveryFee > 0 ? `
+                        <div class="invoice-total-row">
+                            <span style="color:#64748b;">Multi-Stop Distance Delivery Fee</span>
+                            <span>₹${deliveryFee}</span>
+                        </div>
+                    ` : ''}
+                    <div class="invoice-grand-total">
+                        <span>Grand Total (Paid)</span>
+                        <span>₹${grandTotal}</span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; font-size:0.8rem; background:#f8fafc; padding:10px 14px; border-radius:8px; border:1px solid #e2e8f0;">
+                        <div>
+                            <span style="color:#64748b; display:block; font-size:0.75rem;">Payment Method</span>
+                            <strong style="text-transform:capitalize;">${order.paymentMethod ? order.paymentMethod.replace('_', ' ') : 'Online UPI'}</strong>
+                        </div>
+                        <div style="text-align:right;">
+                            <span style="color:#64748b; display:block; font-size:0.75rem;">Payment Status</span>
+                            <strong style="color:${isPaid ? '#16a34a' : '#d97706'};">${isPaid ? 'PAID ONLINE' : 'PENDING AT COUNTER'}</strong>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="text-align:center; font-size:0.75rem; color:#94a3b8; margin-top:16px;">
+                    Thank you for dining with Dine Direct! This is an official computer-generated GST tax receipt.
+                </div>
+
+                <div class="invoice-actions-bar">
+                    <button class="btn btn-secondary" onclick="window.CustomerViews.closeTaxInvoiceModal()" style="flex:1; border:1px solid #cbd5e1;">Close</button>
+                    <button class="btn btn-primary" onclick="window.print()" style="flex:2; display:flex; align-items:center; justify-content:center; gap:8px;">
+                        <span>🖨️ Print / Save PDF</span>
+                    </button>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(modalOverlay);
+    },
+
+    closeTaxInvoiceModal: () => {
+        const modal = document.getElementById('taxInvoiceModal');
+        if (modal) modal.remove();
+    },
+
     // Layout Wrapper for Desktop Sidebar + Mobile Bottom Nav
     wrapLayout: (contentHtml, activePage) => {
         const session = window.DineDirectStore.getSession();
         const userName = session.currentUser || 'Guest';
         const activeTable = session.activeTableNum;
+        const cartCount = window.DineDirectStore ? window.DineDirectStore.getCartTotalCount() : 0;
         
         // Sidebar HTML
         const sidebarHtml = `
@@ -107,6 +302,9 @@ const CustomerViews = {
                 <nav class="sidebar-nav">
                     <a href="#customer/home" class="nav-item ${activePage === 'home' ? 'active' : ''}">
                         <i data-lucide="home"></i> <span>Home</span>
+                    </a>
+                    <a href="#customer/cart" class="nav-item ${activePage === 'cart' ? 'active' : ''}">
+                        <i data-lucide="shopping-bag"></i> <span>Cart ${cartCount > 0 ? `(${cartCount})` : ''}</span>
                     </a>
                     <a href="#customer/booking" class="nav-item ${activePage === 'booking' ? 'active' : ''}">
                         <i data-lucide="calendar"></i> <span>Book Table</span>
@@ -147,9 +345,12 @@ const CustomerViews = {
                     <i data-lucide="home"></i>
                     <span>Home</span>
                 </a>
-                <a href="#customer/cart" class="${activePage === 'cart' ? 'active' : ''}">
+                <a href="#customer/cart" class="${activePage === 'cart' ? 'active' : ''}" style="position:relative;">
                     <i data-lucide="shopping-bag"></i>
                     <span>Cart</span>
+                    ${cartCount > 0 ? `
+                        <span class="badge bg-primary" style="position:absolute; top:2px; right:calc(50% - 18px); font-size:0.65rem; padding:1px 5px; border-radius:10px; min-width:16px; text-align:center;">${cartCount}</span>
+                    ` : ''}
                 </a>
                 <a href="#customer/booking" class="${activePage === 'booking' ? 'active' : ''}">
                     <i data-lucide="calendar"></i>
@@ -897,19 +1098,19 @@ const CustomerViews = {
         const menu = rest.menu;
         const cart = window.DineDirectStore.getCart(restId);
         
-        // Calculate current cart totals
-        let totalItems = 0;
-        let totalPrice = 0;
-        Object.keys(cart).forEach(itemId => {
-            const item = menu.find(m => m.id === itemId);
-            if (item) {
-                totalItems += cart[itemId];
-                totalPrice += item.price * cart[itemId];
-            }
-        });
+        // Calculate global cart totals across all restaurants
+        const globalCartCount = window.DineDirectStore.getCartTotalCount();
+        const globalCartSubtotal = window.DineDirectStore.getCartSubtotal();
+        const cartRestaurants = window.DineDirectStore.getCartRestaurants();
 
         // Group menu items by category
         const categories = [...new Set(menu.map(item => item.category))];
+
+        // Fetch live reviews and average rating
+        const reviews = window.DineDirectStore.getReviews(restId);
+        const avgScore = reviews.length > 0
+            ? (reviews.reduce((acc, r) => acc + (Number(r.rating) || 5), 0) / reviews.length).toFixed(1)
+            : (rest.rating || '4.8');
 
         const restHtml = `
             <div class="customer-restaurant-content fade-in">
@@ -992,13 +1193,74 @@ const CustomerViews = {
                             }).join('')}
                         </div>
                     `).join('')}
+
+                    <!-- Customer Ratings & Reviews Section -->
+                    <div class="restaurant-reviews-card card mt-4 animate-fade-in">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+                            <h3 style="font-size:1.15rem; font-weight:700; margin:0; display:flex; align-items:center; gap:8px;">
+                                <i data-lucide="star" style="width:20px; height:20px; color:#f59e0b; fill:#f59e0b;"></i>
+                                <span>Guest Reviews & Ratings</span>
+                            </h3>
+                            <span class="badge" style="background:#fef3c7; color:#b45309; font-weight:700; padding:4px 10px; border-radius:12px; font-size:0.85rem;">
+                                ${reviews.length} ${reviews.length === 1 ? 'Review' : 'Reviews'}
+                            </span>
+                        </div>
+
+                        <div class="review-rating-summary">
+                            <div>
+                                <div class="big-rating-number">${avgScore}</div>
+                                <div style="color:#f59e0b; font-size:1.1rem; margin-top:4px;">
+                                    ${'★'.repeat(Math.min(5, Math.round(Number(avgScore))))}${'☆'.repeat(Math.max(0, 5 - Math.round(Number(avgScore))))}
+                                </div>
+                                <div style="font-size:0.75rem; color:var(--text-muted); margin-top:2px;">Verified Dining Rating</div>
+                            </div>
+                            <div style="flex:1; border-left:1px solid #f1f5f9; padding-left:16px; font-size:0.8rem; color:var(--text-muted);">
+                                <div><strong style="color:var(--text-main);">100% Verified Diners</strong></div>
+                                <div style="margin-top:4px;">Ratings and compliments submitted by customers after meal delivery.</div>
+                            </div>
+                        </div>
+
+                        <div class="reviews-list">
+                            ${reviews.length === 0 ? `
+                                <div class="text-center py-3 text-muted" style="font-size:0.85rem;">
+                                    <p>No reviews yet for this restaurant. Be the first to leave feedback after dining!</p>
+                                </div>
+                            ` : reviews.slice(0, 5).map(rev => {
+                                const timeStr = new Date(rev.timestamp || Date.now()).toLocaleDateString([], { month: 'short', day: 'numeric' });
+                                const stars = Number(rev.rating) || 5;
+                                const tags = Array.isArray(rev.tags) ? rev.tags : [];
+                                return `
+                                    <div class="review-list-item">
+                                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                                            <div style="display:flex; align-items:center; gap:8px;">
+                                                <div style="width:28px; height:28px; border-radius:50%; background:#fed7aa; color:#9a3412; display:flex; align-items:center; justify-content:center; font-weight:bold; font-size:0.8rem;">
+                                                    ${(rev.customerName || 'G').charAt(0).toUpperCase()}
+                                                </div>
+                                                <strong style="font-size:0.9rem;">${rev.customerName || 'Guest Diner'}</strong>
+                                            </div>
+                                            <span style="font-size:0.75rem; color:var(--text-muted);">${timeStr}</span>
+                                        </div>
+                                        <div style="color:#f59e0b; font-size:0.9rem; margin-top:4px;">
+                                            ${'★'.repeat(Math.min(5, stars))}${'☆'.repeat(Math.max(0, 5 - stars))}
+                                        </div>
+                                        ${rev.comment ? `<p style="font-size:0.85rem; color:var(--text-main); margin:6px 0 0;">${rev.comment}</p>` : ''}
+                                        ${tags.length > 0 ? `
+                                            <div class="review-tags-display">
+                                                ${tags.map(t => `<span class="review-tag-badge">✓ ${t}</span>`).join('')}
+                                            </div>
+                                        ` : ''}
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    </div>
                 </main>
                 
                 <!-- Floating Cart Button -->
-                <div class="floating-cart ${totalItems > 0 ? '' : 'd-none'}" id="floatingCart" onclick="window.location.hash='#customer/cart'" style="display:${totalItems > 0 ? 'flex' : 'none'};">
+                <div class="floating-cart ${globalCartCount > 0 ? '' : 'd-none'}" id="floatingCart" onclick="window.location.hash='#customer/cart'" style="display:${globalCartCount > 0 ? 'flex' : 'none'};">
                     <div class="cart-info">
-                        <span class="qty">${totalItems} ${totalItems === 1 ? 'ITEM' : 'ITEMS'}</span>
-                        <span class="total">₹${totalPrice}</span>
+                        <span class="qty">${globalCartCount} ${globalCartCount === 1 ? 'ITEM' : 'ITEMS'} ${cartRestaurants.length > 1 ? `• ${cartRestaurants.length} Kitchens` : ''}</span>
+                        <span class="total">₹${globalCartSubtotal}</span>
                     </div>
                     <span class="view-cart">View Cart <i data-lucide="chevron-right"></i></span>
                 </div>
@@ -1046,130 +1308,366 @@ const CustomerViews = {
 
     cart: () => {
         const session = window.DineDirectStore.getSession();
-        const restId = session.activeRestaurantId || 'r1';
-        const rest = window.DineDirectStore.getRestaurant(restId);
-        
-        if (!rest) return `<div>Restaurant not found. <a href="#customer/home">Back Home</a></div>`;
+        const userName = session.currentUser || 'Guest';
 
-        const cart = window.DineDirectStore.getCart(restId);
-        const menu = rest.menu;
+        const cartRestaurants = window.DineDirectStore.getCartRestaurants();
 
-        const cartItems = Object.keys(cart).filter(id => cart[id] > 0);
+        if (cartRestaurants.length === 0) {
+            return CustomerViews.wrapLayout(`
+                <div class="customer-cart-content fade-in bg-gray" style="min-height:100vh; padding: 60px 20px; text-align:center;">
+                    <i data-lucide="shopping-cart" style="width:56px;height:56px;color:var(--text-muted);opacity:0.3;margin-bottom:16px;"></i>
+                    <h3>Your Cart is Empty</h3>
+                    <p class="text-muted mt-2">Please select a restaurant to browse delicious food items.</p>
+                    <button class="btn btn-primary mt-4" onclick="window.location.hash='#customer/home'">Explore Restaurants</button>
+                </div>
+            `, 'cart');
+        }
 
+        // Subtotal calculation across all restaurants
         let subtotal = 0;
-        cartItems.forEach(itemId => {
-            const item = menu.find(m => m.id === itemId);
-            if (item) {
-                subtotal += item.price * cart[itemId];
-            }
+        const groupedCart = cartRestaurants.map(rest => {
+            const cart = window.DineDirectStore.getCart(rest.id);
+            const menu = rest.menu || [];
+            const activeItemIds = Object.keys(cart).filter(id => Number(cart[id]) > 0);
+            let restTotal = 0;
+            const items = activeItemIds.map(itemId => {
+                const item = menu.find(m => m.id === itemId);
+                const qty = Number(cart[itemId]);
+                const price = item ? Number(item.price) || 0 : 0;
+                restTotal += price * qty;
+                return {
+                    id: itemId,
+                    name: item ? item.name : 'Unknown Item',
+                    price,
+                    qty
+                };
+            });
+            subtotal += restTotal;
+            return {
+                restaurant: rest,
+                items,
+                restTotal
+            };
         });
 
-        const tax = Math.round(subtotal * 0.05); // 5% GST
-        const serviceCharge = Math.round(subtotal * 0.05); // 5% Service Charge
-        const total = subtotal + tax + serviceCharge;
+        // Dynamic Multi-Hop Distance & Delivery Fee Calculation
+        const custLat = (window.customerLocation && window.customerLocation.lat) || 17.4375;
+        const custLng = (window.customerLocation && window.customerLocation.lng) || 78.4482;
+        const custLocName = (window.customerLocation && window.customerLocation.name) || 'Begumpet, Hyderabad';
+
+        let totalDistance = 0;
+        const routeStops = [];
+
+        if (cartRestaurants.length === 1) {
+            const r = cartRestaurants[0];
+            const d = calculateDistance(r.latitude || 17.4411, r.longitude || 78.4983, custLat, custLng);
+            totalDistance = d;
+            routeStops.push({
+                type: 'restaurant',
+                name: r.name,
+                address: r.address || 'Hyderabad',
+                legDist: d
+            });
+            routeStops.push({
+                type: 'home',
+                name: custLocName,
+                address: 'Delivery Destination',
+                legDist: 0
+            });
+        } else {
+            // Multi-restaurant sequential route:
+            // Courier visits Restaurant 1 -> Restaurant 2 -> ... -> Delivery to Customer
+            for (let i = 0; i < cartRestaurants.length; i++) {
+                const cur = cartRestaurants[i];
+                let legDist = 0;
+                if (i < cartRestaurants.length - 1) {
+                    const next = cartRestaurants[i + 1];
+                    legDist = calculateDistance(
+                        cur.latitude || 17.4411, cur.longitude || 78.4983,
+                        next.latitude || 17.4319, next.longitude || 78.4073
+                    );
+                    totalDistance += legDist;
+                } else {
+                    legDist = calculateDistance(
+                        cur.latitude || 17.4319, cur.longitude || 78.4073,
+                        custLat, custLng
+                    );
+                    totalDistance += legDist;
+                }
+                routeStops.push({
+                    type: 'restaurant',
+                    name: cur.name,
+                    address: cur.address || 'Hyderabad',
+                    legDist
+                });
+            }
+            routeStops.push({
+                type: 'home',
+                name: custLocName,
+                address: 'Your Delivery Address',
+                legDist: 0
+            });
+        }
+
+        totalDistance = parseFloat(totalDistance.toFixed(1));
+
+        // Delivery Pricing Model:
+        // Base fee: ₹30 (covers first 2 km)
+        // Distance rate: ₹10 per km beyond 2 km
+        // Multi-Restaurant Detour Surcharge: ₹25 per additional restaurant
+        const baseDeliveryFee = 30;
+        const extraKm = Math.max(0, totalDistance - 2.0);
+        const distanceCharge = Math.ceil(extraKm) * 10;
+        const detourCharge = (cartRestaurants.length - 1) * 25;
+        const deliveryFee = baseDeliveryFee + distanceCharge + detourCharge;
+
+        const cgst = Math.round(subtotal * 0.025);
+        const sgst = Math.round(subtotal * 0.025);
+        const serviceCharge = Math.round(subtotal * 0.05);
+        const grandTotal = subtotal + cgst + sgst + serviceCharge + deliveryFee;
+
+        const isMultiVendor = cartRestaurants.length > 1;
 
         const cartHtml = `
             <div class="customer-cart-content fade-in bg-gray" style="min-height:100vh;">
                 <header class="plain-header">
-                    <button class="back-btn" onclick="window.location.hash='#customer/restaurant/${restId}'"><i data-lucide="arrow-left"></i></button>
+                    <button class="back-btn" onclick="window.history.back()"><i data-lucide="arrow-left"></i></button>
                     <h2>Checkout</h2>
                 </header>
 
                 <main class="mobile-main pb-100">
-                    <div class="cart-summary card mt-4">
-                        <h3>${rest.name}</h3>
-                        <p class="text-muted">${rest.address} ${session.activeTableNum ? `• Table ${session.activeTableNum}` : ''}</p>
-
-                        <div class="cart-items mt-4" style="border-top:1px solid rgba(0,0,0,0.05); padding-top:16px;">
-                            ${cartItems.length === 0 ? `
-                                <div class="text-center py-4 text-muted">
-                                    <i data-lucide="shopping-cart" style="width:48px;height:48px;opacity:0.3;margin-bottom:12px;"></i>
-                                    <p>Your cart is empty. Let's add food!</p>
-                                </div>
-                            ` : cartItems.map(itemId => {
-                                const item = menu.find(m => m.id === itemId);
-                                const qty = cart[itemId];
-                                if (!item) return '';
-                                return `
-                                    <div class="cart-item" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
-                                        <div style="flex:1;">
-                                            <h4 style="font-weight:500;font-size:0.95rem;">${item.name}</h4>
-                                            <span style="font-size:0.85rem;color:var(--primary);font-weight:600;">₹${item.price}</span>
-                                        </div>
-                                        <div class="item-ctrl" style="display:flex; align-items:center; gap:12px; background:rgba(0,0,0,0.05); padding:4px 12px; border-radius:8px;">
-                                            <button class="qty-btn dec-cart-btn" data-id="${item.id}" style="background:none;border:none;color:var(--primary);font-size:1.2rem;font-weight:bold;cursor:pointer;">-</button>
-                                            <span style="font-weight:bold;">${qty}</span>
-                                            <button class="qty-btn inc-cart-btn" data-id="${item.id}" style="background:none;border:none;color:var(--primary);font-size:1.2rem;font-weight:bold;cursor:pointer;">+</button>
-                                        </div>
-                                        <div style="font-weight:600; width:60px; text-align:right;">₹${item.price * qty}</div>
-                                    </div>
-                                `;
-                            }).join('')}
-                        </div>
-
-                        ${cartItems.length > 0 ? `
-                            ${userName === 'Guest' ? `
-                                <div class="customer-details-form mt-4 animate-fade-in" style="border-top:1px solid rgba(0,0,0,0.05); padding-top:16px;">
-                                    <h4 style="font-size:1rem; font-weight:600; margin-bottom:12px; display:flex; align-items:center; gap:6px;">
-                                        <i data-lucide="user" style="width:16px; height:16px; color:var(--primary);"></i>
-                                        <span>Customer Details</span>
-                                    </h4>
-                                    <div class="form-group" style="margin-bottom:12px;">
-                                        <label style="font-size:0.8rem; color:var(--text-muted); display:block; margin-bottom:6px; font-weight:500;">Your Name</label>
-                                        <input type="text" class="form-control" id="checkoutCustomerName" placeholder="e.g. John Doe" required style="background:#fff; border:1px solid #ddd; padding:10px 12px; border-radius:8px; width:100%; box-sizing:border-box; font-size:0.9rem;">
-                                    </div>
-                                    <div class="form-group" style="margin-bottom:16px;">
-                                        <label style="font-size:0.8rem; color:var(--text-muted); display:block; margin-bottom:6px; font-weight:500;">Phone Number</label>
-                                        <input type="tel" class="form-control" id="checkoutCustomerPhone" placeholder="e.g. +91 98765 43210" required style="background:#fff; border:1px solid #ddd; padding:10px 12px; border-radius:8px; width:100%; box-sizing:border-box; font-size:0.9rem;">
-                                    </div>
-                                </div>
-                            ` : ''}
-                            <div class="bill-details mt-4" style="border-top:1px dashed rgba(0,0,0,0.1); padding-top:16px;">
-                                <h4>Bill Details</h4>
-                                <div class="bill-row" style="display:flex; justify-content:space-between; margin-top:8px;"><span class="text-muted">Item Total</span> <span>₹${subtotal}</span></div>
-                                <div class="bill-row" style="display:flex; justify-content:space-between; margin-top:8px;"><span class="text-muted">GST (5%)</span> <span>₹${tax}</span></div>
-                                <div class="bill-row" style="display:flex; justify-content:space-between; margin-top:8px;"><span class="text-muted">Service Charge (5%)</span> <span>₹${serviceCharge}</span></div>
-                                <div class="bill-row total-row" style="display:flex; justify-content:space-between; margin-top:12px; border-top:1px dashed rgba(0,0,0,0.1); padding-top:12px;">
-                                    <strong>To Pay</strong> <strong style="color:var(--primary); font-size:1.2rem;">₹${total}</strong>
+                    <div class="mt-3">
+                        ${isMultiVendor ? `
+                            <div class="multi-rest-banner animate-fade-in">
+                                <i data-lucide="layers" style="color:var(--primary); width:24px; height:24px; flex-shrink:0;"></i>
+                                <div style="flex:1;">
+                                    <strong style="font-size:0.95rem; color:#9a3412;">Multi-Restaurant Shared Cart</strong>
+                                    <div style="font-size:0.8rem; color:#c2410c;">Ordering from <strong>${cartRestaurants.length} restaurants</strong> in a single unified checkout!</div>
                                 </div>
                             </div>
                         ` : ''}
+
+                        <!-- Grouped Items per Restaurant -->
+                        ${groupedCart.map(grp => `
+                            <div class="multi-rest-cart-group">
+                                <div class="multi-rest-header">
+                                    <div>
+                                        <h3 style="font-size:1.05rem; font-weight:700; margin:0; display:flex; align-items:center; gap:6px;">
+                                            <i data-lucide="store" style="width:18px; height:18px; color:var(--primary);"></i>
+                                            <span>${grp.restaurant.name}</span>
+                                        </h3>
+                                        <p class="text-muted" style="font-size:0.75rem; margin:2px 0 0;">${grp.restaurant.address || 'Hyderabad'}</p>
+                                    </div>
+                                    <button class="btn btn-secondary" onclick="window.location.hash='#customer/restaurant/${grp.restaurant.id}'" style="padding:4px 10px; font-size:0.75rem; border-radius:8px; border:1px solid #e2e8f0; display:flex; align-items:center; gap:4px;">
+                                        <span>+ Add More</span>
+                                    </button>
+                                </div>
+
+                                <div class="cart-items" style="padding:16px;">
+                                    ${grp.items.map(it => `
+                                        <div class="cart-item" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+                                            <div style="flex:1;">
+                                                <h4 style="font-weight:500; font-size:0.95rem; margin:0;">${it.name}</h4>
+                                                <span style="font-size:0.85rem; color:var(--primary); font-weight:600;">₹${it.price}</span>
+                                            </div>
+                                            <div class="item-ctrl" style="display:flex; align-items:center; gap:12px; background:rgba(0,0,0,0.05); padding:4px 12px; border-radius:8px;">
+                                                <button class="qty-btn dec-cart-btn" data-rest-id="${grp.restaurant.id}" data-id="${it.id}">-</button>
+                                                <span style="font-weight:bold;">${it.qty}</span>
+                                                <button class="qty-btn inc-cart-btn" data-rest-id="${grp.restaurant.id}" data-id="${it.id}">+</button>
+                                            </div>
+                                            <div style="font-weight:600; width:65px; text-align:right;">₹${it.price * it.qty}</div>
+                                        </div>
+                                    `).join('')}
+
+                                    <div style="border-top:1px dashed rgba(0,0,0,0.08); padding-top:10px; display:flex; justify-content:space-between; font-size:0.85rem;">
+                                        <span class="text-muted">Kitchen Subtotal:</span>
+                                        <strong style="color:var(--text-main);">₹${grp.restTotal}</strong>
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('')}
+
+                        <!-- Dynamic Multi-Hop Distance & Delivery Route Breakdown -->
+                        <div class="route-visualizer animate-fade-in">
+                            <div style="display:flex; justify-content:space-between; align-items:center;">
+                                <h4 style="font-size:0.95rem; font-weight:700; margin:0; display:flex; align-items:center; gap:8px;">
+                                    <i data-lucide="navigation" style="color:var(--primary); width:18px; height:18px;"></i>
+                                    <span>${isMultiVendor ? 'Multi-Stop Courier Delivery Route' : 'Direct Courier Delivery Route'}</span>
+                                </h4>
+                                <span class="badge bg-primary" style="padding:4px 10px; border-radius:12px; font-weight:700; font-size:0.75rem;">
+                                    ${totalDistance} km
+                                </span>
+                            </div>
+
+                            <p style="font-size:0.8rem; color:#64748b; margin:6px 0 14px;">
+                                ${isMultiVendor 
+                                    ? `Courier collects fresh items sequentially across <strong>${cartRestaurants.length} kitchens</strong> and delivers straight to you.` 
+                                    : `Direct fast delivery from kitchen straight to your address.`}
+                            </p>
+
+                            <div class="route-steps-container">
+                                ${routeStops.map((stop, idx) => `
+                                    <div class="route-step-item ${stop.type === 'home' ? 'home' : ''}">
+                                        <div class="node-dot"></div>
+                                        <div style="flex:1; padding-right:10px;">
+                                            <strong style="font-size:0.85rem; display:block; color:var(--text-main);">${stop.name}</strong>
+                                            <span style="font-size:0.75rem; color:#64748b;">${stop.address}</span>
+                                        </div>
+                                        ${stop.legDist > 0 ? `
+                                            <span class="badge" style="background:#e0f2fe; color:#0284c7; font-size:0.7rem; padding:2px 8px; border-radius:8px;">
+                                                ➔ ${stop.legDist} km
+                                            </span>
+                                        ` : `
+                                            <span class="badge" style="background:#dcfce7; color:#15803d; font-size:0.7rem; padding:2px 8px; border-radius:8px;">
+                                                📍 Drop
+                                            </span>
+                                        `}
+                                    </div>
+                                `).join('')}
+                            </div>
+
+                            <!-- Transparent Pricing Details -->
+                            <div style="margin-top:14px; padding:12px; background:#ffffff; border-radius:10px; border:1px solid #e2e8f0; font-size:0.8rem; color:#475569;">
+                                <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+                                    <span>Base Courier Fee (first 2.0 km):</span>
+                                    <strong>₹${baseDeliveryFee}</strong>
+                                </div>
+                                ${distanceCharge > 0 ? `
+                                    <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+                                        <span>Route Distance Fee (${extraKm.toFixed(1)} km @ ₹10/km):</span>
+                                        <strong>₹${distanceCharge}</strong>
+                                    </div>
+                                ` : ''}
+                                ${detourCharge > 0 ? `
+                                    <div style="display:flex; justify-content:space-between; margin-bottom:4px; color:#c2410c;">
+                                        <span>Multi-Restaurant Detour Pickup (${cartRestaurants.length - 1} extra):</span>
+                                        <strong>₹${detourCharge}</strong>
+                                    </div>
+                                ` : ''}
+                                <div style="display:flex; justify-content:space-between; border-top:1px dashed #e2e8f0; padding-top:6px; margin-top:6px; font-weight:bold; color:var(--text-main);">
+                                    <span>Total Distance Delivery Charge:</span>
+                                    <span style="color:var(--primary); font-size:0.95rem;">₹${deliveryFee}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Customer Details Form -->
+                        ${userName === 'Guest' ? `
+                            <div class="customer-details-form card mt-4 animate-fade-in" style="padding:16px;">
+                                <h4 style="font-size:1rem; font-weight:600; margin-bottom:12px; display:flex; align-items:center; gap:6px;">
+                                    <i data-lucide="user" style="width:16px; height:16px; color:var(--primary);"></i>
+                                    <span>Contact & Delivery Details</span>
+                                </h4>
+                                <div class="form-group" style="margin-bottom:12px;">
+                                    <label style="font-size:0.8rem; color:var(--text-muted); display:block; margin-bottom:6px; font-weight:500;">Your Name</label>
+                                    <input type="text" class="form-control" id="checkoutCustomerName" placeholder="e.g. John Doe" required style="background:#fff; border:1px solid #ddd; padding:10px 12px; border-radius:8px; width:100%; box-sizing:border-box; font-size:0.9rem;">
+                                </div>
+                                <div class="form-group" style="margin-bottom:8px;">
+                                    <label style="font-size:0.8rem; color:var(--text-muted); display:block; margin-bottom:6px; font-weight:500;">Phone Number</label>
+                                    <input type="tel" class="form-control" id="checkoutCustomerPhone" placeholder="e.g. +91 98765 43210" required style="background:#fff; border:1px solid #ddd; padding:10px 12px; border-radius:8px; width:100%; box-sizing:border-box; font-size:0.9rem;">
+                                </div>
+                            </div>
+                        ` : ''}
+
+                        <!-- Bill Details Card -->
+                        <div class="bill-details card mt-4" style="padding:16px;">
+                            <h4 style="font-weight:700; margin-bottom:12px;">Bill Details</h4>
+                            <div class="bill-row" style="display:flex; justify-content:space-between; margin-bottom:8px;"><span class="text-muted">Item Subtotal</span> <span>₹${subtotal}</span></div>
+                            <div class="bill-row" style="display:flex; justify-content:space-between; margin-bottom:8px;"><span class="text-muted">CGST (2.5%)</span> <span>₹${cgst}</span></div>
+                            <div class="bill-row" style="display:flex; justify-content:space-between; margin-bottom:8px;"><span class="text-muted">SGST (2.5%)</span> <span>₹${sgst}</span></div>
+                            <div class="bill-row" style="display:flex; justify-content:space-between; margin-bottom:8px;"><span class="text-muted">Restaurant Service Charge (5%)</span> <span>₹${serviceCharge}</span></div>
+                            <div class="bill-row" style="display:flex; justify-content:space-between; margin-bottom:8px;"><span class="text-muted">Distance-Based Delivery Fee</span> <span>₹${deliveryFee}</span></div>
+                            <div class="bill-row total-row" style="display:flex; justify-content:space-between; margin-top:12px; border-top:1px dashed rgba(0,0,0,0.1); padding-top:12px;">
+                                <strong>To Pay (Inclusive of GST & Delivery)</strong> <strong style="color:var(--primary); font-size:1.25rem;">₹${grandTotal}</strong>
+                            </div>
+                        </div>
+
+                        <!-- Payment Sandbox Section -->
+                        <div class="payment-method-selector card mt-4" style="border:1px solid #fed7aa; padding:16px; background:#fffaf7;">
+                            <h4 style="font-weight:700; font-size:0.95rem; margin-bottom:12px; display:flex; align-items:center; gap:8px;">
+                                <i data-lucide="shield-check" style="color:var(--primary); width:18px; height:18px;"></i>
+                                <span>Choose Payment Option</span>
+                            </h4>
+
+                            <div class="payment-methods-grid">
+                                <div class="payment-method-card active" data-method="upi" id="payOptionUpi">
+                                    <input type="radio" name="paymentOptionRadio" value="upi" checked>
+                                    <div style="flex:1;">
+                                        <div style="font-weight:600; font-size:0.9rem;">Instant UPI (QR / Apps)</div>
+                                        <div style="font-size:0.75rem; color:var(--text-muted);">GPay, PhonePe, Paytm, BHIM</div>
+                                    </div>
+                                    <i data-lucide="qr-code" style="color:var(--primary); width:20px; height:20px;"></i>
+                                </div>
+
+                                <div class="payment-method-card" data-method="card" id="payOptionCard">
+                                    <input type="radio" name="paymentOptionRadio" value="card">
+                                    <div style="flex:1;">
+                                        <div style="font-weight:600; font-size:0.9rem;">Credit / Debit Card Sandbox</div>
+                                        <div style="font-size:0.75rem; color:var(--text-muted);">Simulate Visa, Mastercard, RuPay</div>
+                                    </div>
+                                    <i data-lucide="credit-card" style="color:var(--primary); width:20px; height:20px;"></i>
+                                </div>
+
+                                <div class="payment-method-card" data-method="counter" id="payOptionCounter">
+                                    <input type="radio" name="paymentOptionRadio" value="counter">
+                                    <div style="flex:1;">
+                                        <div style="font-weight:600; font-size:0.9rem;">Pay on Delivery / Counter</div>
+                                        <div style="font-size:0.75rem; color:var(--text-muted);">Cash / UPI to rider at doorstep</div>
+                                    </div>
+                                    <i data-lucide="banknote" style="color:var(--primary); width:20px; height:20px;"></i>
+                                </div>
+                            </div>
+
+                            <!-- Dynamic Subpanel for UPI -->
+                            <div class="payment-subpanel" id="panelUpi">
+                                <div style="text-align:center;">
+                                    <div style="font-size:0.8rem; font-weight:700; color:var(--text-muted); margin-bottom:8px;">SCAN TEST QR CODE TO PAY ₹${grandTotal}</div>
+                                    <div style="display:inline-block; padding:12px; background:white; border-radius:12px; border:1px solid #e2e8f0;">
+                                        <i data-lucide="qr-code" style="width:100px; height:100px; color:#1e293b;"></i>
+                                    </div>
+                                    <div style="display:flex; justify-content:center; align-items:center; gap:8px; margin-top:10px;">
+                                        <span style="font-size:0.8rem; background:#ffffff; border:1px solid #e2e8f0; padding:4px 10px; border-radius:8px; font-family:monospace;">dinedirect@okaxis</span>
+                                        <button type="button" class="btn btn-secondary" onclick="navigator.clipboard.writeText('dinedirect@okaxis'); window.showToast('📋 UPI ID copied!');" style="padding:4px 10px; font-size:0.75rem;">Copy</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Dynamic Subpanel for Card Sandbox -->
+                            <div class="payment-subpanel d-none" id="panelCard">
+                                <div style="font-size:0.8rem; font-weight:700; color:var(--text-muted); margin-bottom:10px;">TEST CARD DETAILS</div>
+                                <div class="form-group" style="margin-bottom:8px;">
+                                    <label style="font-size:0.75rem; color:var(--text-muted); display:block; margin-bottom:4px;">Card Number</label>
+                                    <input type="text" class="form-control" id="sandboxCardNum" value="4242 •••• •••• 4242" style="background:#fff; font-family:monospace; font-size:0.85rem; padding:8px 12px; border-radius:8px; border:1px solid #ddd; width:100%; box-sizing:border-box;">
+                                </div>
+                                <div style="display:flex; gap:10px;">
+                                    <div style="flex:1;">
+                                        <label style="font-size:0.75rem; color:var(--text-muted); display:block; margin-bottom:4px;">Valid Thru</label>
+                                        <input type="text" class="form-control" id="sandboxCardExp" value="12/28" style="background:#fff; font-family:monospace; font-size:0.85rem; padding:8px 12px; border-radius:8px; border:1px solid #ddd; width:100%; box-sizing:border-box;">
+                                    </div>
+                                    <div style="flex:1;">
+                                        <label style="font-size:0.75rem; color:var(--text-muted); display:block; margin-bottom:4px;">CVV</label>
+                                        <input type="password" class="form-control" id="sandboxCardCvv" value="888" style="background:#fff; font-family:monospace; font-size:0.85rem; padding:8px 12px; border-radius:8px; border:1px solid #ddd; width:100%; box-sizing:border-box;">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Dynamic Subpanel for Counter -->
+                            <div class="payment-subpanel d-none" id="panelCounter">
+                                <div style="display:flex; gap:10px; align-items:center;">
+                                    <i data-lucide="info" style="width:20px; height:20px; color:var(--primary); flex-shrink:0;"></i>
+                                    <span style="font-size:0.8rem; color:#475569;">
+                                        Your order will be transmitted directly to all kitchens. You can pay <strong>₹${grandTotal}</strong> in cash or UPI to the courier upon delivery.
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </main>
 
-                ${cartItems.length > 0 ? `
-                    <div class="checkout-bar text-center">
-                        <div class="payment-options" style="display:flex; gap:12px; max-width: 480px; margin: 0 auto;">
-                            <button class="btn btn-secondary pay-later-btn" id="btnPayLater" style="flex:1; border:2px solid var(--text-muted);">Pay at Counter</button>
-                            <button class="btn btn-primary pay-now-btn" id="btnPayNow" style="flex:1.5;">Pay Online (₹${total}) <i data-lucide="arrow-right"></i></button>
-                        </div>
-                    </div>
-                ` : ''}
-
-                <!-- UPI simulated Payment Modal -->
-                <div class="modal-overlay d-none" id="paymentModal">
-                    <div class="modal-container card animate-fade-in" style="max-width:360px; width:90%; margin:0 auto; padding:24px; text-align:center;">
-                        <i data-lucide="credit-card" style="width:48px;height:48px;color:var(--primary);margin-bottom:12px;"></i>
-                        <h3>UPI Payment Simulator</h3>
-                        <p class="text-muted mt-2" style="font-size:0.9rem;">Simulate online payment for ₹${total}</p>
-                        
-                        <div class="qr-placeholder mt-4" style="background:#f8f9fa; padding:16px; border-radius:12px; display:inline-block; border:1px solid rgba(0,0,0,0.05);">
-                            <div style="font-size:0.8rem; font-weight:bold; color:var(--text-muted); margin-bottom:8px;">SCAN THE UPI MOCK CODE</div>
-                            <i data-lucide="qr-code" style="width:120px;height:120px;color:var(--text-main);"></i>
-                        </div>
-
-                        <div class="form-group mt-4" style="text-align:left;">
-                            <label>Simulated UPI ID / Phone</label>
-                            <input type="text" class="form-control" value="dinedirect@upi" readonly>
-                        </div>
-
-                        <button class="btn btn-primary btn-block mt-4" id="btnConfirmPayment">
-                            <i data-lucide="shield-check"></i> Authorize & Pay
-                        </button>
-                        <button class="btn btn-secondary btn-block mt-2" id="btnCancelPayment" style="border:1px solid #ddd;">
-                            Cancel
-                        </button>
-                    </div>
+                <div class="checkout-bar text-center">
+                    <button class="btn btn-primary btn-block" id="btnPlaceOrderMain" data-delivery-fee="${deliveryFee}" style="padding:14px; font-size:1rem; font-weight:700; border-radius:12px; box-shadow:0 4px 14px rgba(234, 88, 12, 0.35); width:100%; max-width:480px; margin:0 auto; display:flex; align-items:center; justify-content:center; gap:8px;">
+                        <span id="checkoutActionLabel">Pay via Instant UPI (₹${grandTotal})</span> <i data-lucide="arrow-right"></i>
+                    </button>
                 </div>
             </div>
         `;
@@ -1178,11 +1676,11 @@ const CustomerViews = {
 
     setupCartListeners: () => {
         const session = window.DineDirectStore.getSession();
-        const restId = session.activeRestaurantId || 'r1';
 
-        // Wire counter buttons
+        // Wire counter buttons for each restaurant item
         document.querySelectorAll('.inc-cart-btn').forEach(btn => {
             btn.addEventListener('click', () => {
+                const restId = btn.getAttribute('data-rest-id');
                 const itemId = btn.getAttribute('data-id');
                 window.DineDirectStore.addToCart(restId, itemId);
             });
@@ -1190,18 +1688,68 @@ const CustomerViews = {
 
         document.querySelectorAll('.dec-cart-btn').forEach(btn => {
             btn.addEventListener('click', () => {
+                const restId = btn.getAttribute('data-rest-id');
                 const itemId = btn.getAttribute('data-id');
                 window.DineDirectStore.removeFromCart(restId, itemId);
             });
         });
 
-        // Pay Later
-        const btnPayLater = document.getElementById('btnPayLater');
-        if (btnPayLater) {
-            btnPayLater.addEventListener('click', () => {
+        // Payment switcher logic
+        let currentMethod = 'upi';
+        const methodCards = document.querySelectorAll('.payment-method-card');
+        const panelUpi = document.getElementById('panelUpi');
+        const panelCard = document.getElementById('panelCard');
+        const panelCounter = document.getElementById('panelCounter');
+        const checkoutActionLabel = document.getElementById('checkoutActionLabel');
+        const btnPlaceOrderMain = document.getElementById('btnPlaceOrderMain');
+
+        const updatePaymentSelection = (method) => {
+            currentMethod = method;
+            methodCards.forEach(c => {
+                if (c.getAttribute('data-method') === method) {
+                    c.classList.add('active');
+                    const radio = c.querySelector('input[type="radio"]');
+                    if (radio) radio.checked = true;
+                } else {
+                    c.classList.remove('active');
+                }
+            });
+
+            if (panelUpi) panelUpi.classList.toggle('d-none', method !== 'upi');
+            if (panelCard) panelCard.classList.toggle('d-none', method !== 'card');
+            if (panelCounter) panelCounter.classList.toggle('d-none', method !== 'counter');
+
+            if (checkoutActionLabel && btnPlaceOrderMain) {
+                const subtotal = window.DineDirectStore.getCartSubtotal();
+                const cgst = Math.round(subtotal * 0.025);
+                const sgst = Math.round(subtotal * 0.025);
+                const sc = Math.round(subtotal * 0.05);
+                const deliveryFee = Number(btnPlaceOrderMain.getAttribute('data-delivery-fee')) || 0;
+                const tot = subtotal + cgst + sgst + sc + deliveryFee;
+
+                if (method === 'upi') {
+                    checkoutActionLabel.textContent = `Pay via Instant UPI (₹${tot})`;
+                } else if (method === 'card') {
+                    checkoutActionLabel.textContent = `Authorize Card & Pay (₹${tot})`;
+                } else {
+                    checkoutActionLabel.textContent = `Place Order • Pay on Delivery (₹${tot})`;
+                }
+            }
+        };
+
+        methodCards.forEach(card => {
+            card.addEventListener('click', () => {
+                const method = card.getAttribute('data-method');
+                updatePaymentSelection(method);
+            });
+        });
+
+        // Order Placement button
+        if (btnPlaceOrderMain) {
+            btnPlaceOrderMain.addEventListener('click', async () => {
                 const nameInput = document.getElementById('checkoutCustomerName');
                 const phoneInput = document.getElementById('checkoutCustomerPhone');
-                
+
                 if (nameInput && !nameInput.value.trim()) {
                     nameInput.focus();
                     nameInput.style.borderColor = 'var(--danger)';
@@ -1214,8 +1762,7 @@ const CustomerViews = {
                     showToast('⚠️ Please enter your phone number to proceed.');
                     return;
                 }
-                
-                const cart = window.DineDirectStore.getCart(restId);
+
                 let userName = session.currentUser || 'Guest';
                 if (nameInput && nameInput.value.trim()) {
                     userName = nameInput.value.trim();
@@ -1225,97 +1772,68 @@ const CustomerViews = {
                     }
                     window.DineDirectStore.setSession({ currentUser: userName });
                 }
-                
-                const order = window.DineDirectStore.placeOrder(restId, session.activeTableNum, cart, 'pay_later', userName);
-                showToast('Order placed! Please pay at the counter.');
-                window.location.hash = '#customer/tracking';
-            });
-        }
 
-        // Pay Now (UPI simulator)
-        const btnPayNow = document.getElementById('btnPayNow');
-        const paymentModal = document.getElementById('paymentModal');
-        const btnCancelPayment = document.getElementById('btnCancelPayment');
-        const btnConfirmPayment = document.getElementById('btnConfirmPayment');
+                const deliveryFee = Number(btnPlaceOrderMain.getAttribute('data-delivery-fee')) || 0;
+                const cartRestaurants = window.DineDirectStore.getCartRestaurants();
 
-        if (btnPayNow && paymentModal) {
-            btnPayNow.addEventListener('click', () => {
-                const nameInput = document.getElementById('checkoutCustomerName');
-                const phoneInput = document.getElementById('checkoutCustomerPhone');
-                
-                if (nameInput && !nameInput.value.trim()) {
-                    nameInput.focus();
-                    nameInput.style.borderColor = 'var(--danger)';
-                    showToast('⚠️ Please enter your name to proceed.');
-                    return;
-                }
-                if (phoneInput && !phoneInput.value.trim()) {
-                    phoneInput.focus();
-                    phoneInput.style.borderColor = 'var(--danger)';
-                    showToast('⚠️ Please enter your phone number to proceed.');
-                    return;
-                }
-                
-                paymentModal.classList.remove('d-none');
-                paymentModal.style.display = 'flex';
-                paymentModal.style.alignItems = 'center';
-                paymentModal.style.justifyContent = 'center';
-                paymentModal.style.position = 'fixed';
-                paymentModal.style.top = '0';
-                paymentModal.style.left = '0';
-                paymentModal.style.width = '100vw';
-                paymentModal.style.height = '100vh';
-                paymentModal.style.background = 'rgba(0,0,0,0.6)';
-                paymentModal.style.zIndex = '2000';
-            });
-        }
+                // Simulation feedback
+                btnPlaceOrderMain.disabled = true;
+                const originalText = btnPlaceOrderMain.innerHTML;
+                btnPlaceOrderMain.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Placing Order across ${cartRestaurants.length} Kitchen${cartRestaurants.length > 1 ? 's' : ''}...`;
 
-        if (btnCancelPayment && paymentModal) {
-            btnCancelPayment.addEventListener('click', () => {
-                paymentModal.classList.add('d-none');
-                paymentModal.style.display = 'none';
-            });
-        }
-
-        if (btnConfirmPayment) {
-            btnConfirmPayment.addEventListener('click', () => {
-                const cart = window.DineDirectStore.getCart(restId);
-                let userName = session.currentUser || 'Guest';
-                const nameInput = document.getElementById('checkoutCustomerName');
-                const phoneInput = document.getElementById('checkoutCustomerPhone');
-                
-                if (nameInput && nameInput.value.trim()) {
-                    userName = nameInput.value.trim();
-                    const phoneVal = phoneInput ? phoneInput.value.trim() : '';
-                    if (phoneVal) {
-                        userName += ` (${phoneVal})`;
+                setTimeout(async () => {
+                    try {
+                        const paymentMethodCode = currentMethod === 'counter' ? 'pay_later' : (currentMethod === 'card' ? 'card' : 'pay_now');
+                        const result = await window.DineDirectStore.placeGroupOrder(
+                            session.activeTableNum,
+                            paymentMethodCode,
+                            userName,
+                            deliveryFee
+                        );
+                        
+                        if (currentMethod === 'counter') {
+                            showToast('🍽️ Multi-Restaurant Order Placed! Pay on delivery.');
+                        } else {
+                            showToast('✅ Payment authorized! All kitchens received your tickets.');
+                        }
+                        window.location.hash = '#customer/tracking';
+                    } catch (err) {
+                        showToast('⚠️ Failed to place order: ' + err.message);
+                        btnPlaceOrderMain.disabled = false;
+                        btnPlaceOrderMain.innerHTML = originalText;
                     }
-                    window.DineDirectStore.setSession({ currentUser: userName });
-                }
-                
-                const order = window.DineDirectStore.placeOrder(restId, session.activeTableNum, cart, 'pay_now', userName);
-                
-                paymentModal.classList.add('d-none');
-                paymentModal.style.display = 'none';
-                
-                showToast('Payment successful! Order placed.');
-                window.location.hash = '#customer/tracking';
+                }, 400);
             });
         }
     },
 
     tracking: () => {
         const session = window.DineDirectStore.getSession();
-        const restId = session.activeRestaurantId || 'r1';
-        const activeTable = session.activeTableNum;
+        const activeGroupId = session.activeGroupOrderId;
+        const allOrders = window.DineDirectStore.getOrders(); // all orders across all restaurants
         
-        const orders = window.DineDirectStore.getOrders(restId);
-        const activeOrder = orders.reverse().find(o => 
-            (activeTable && String(o.tableNum) === String(activeTable) && o.status !== 'delivered') || 
-            (!activeTable && o.status !== 'delivered')
-        );
+        let trackedOrders = [];
+        if (activeGroupId) {
+            trackedOrders = allOrders.filter(o => o.groupOrderId === activeGroupId);
+        }
+        
+        if (trackedOrders.length === 0) {
+            const activeTable = session.activeTableNum;
+            const activeOrder = allOrders.find(o => 
+                (activeTable && String(o.tableNum) === String(activeTable) && o.status !== 'delivered' && o.status !== 'served') || 
+                (!activeTable && o.status !== 'delivered' && o.status !== 'served')
+            ) || allOrders[0];
 
-        if (!activeOrder) {
+            if (activeOrder) {
+                if (activeOrder.groupOrderId) {
+                    trackedOrders = allOrders.filter(o => o.groupOrderId === activeOrder.groupOrderId);
+                } else {
+                    trackedOrders = [activeOrder];
+                }
+            }
+        }
+
+        if (trackedOrders.length === 0) {
             const emptyTracking = `
                 <div class="customer-tracking-content fade-in">
                     <header class="plain-header">
@@ -1332,43 +1850,38 @@ const CustomerViews = {
             return CustomerViews.wrapLayout(emptyTracking, 'orders');
         }
 
-        // Determine step statuses & progress fill
-        const status = activeOrder.status;
+        const isMultiRestaurant = trackedOrders.length > 1;
+        const primaryOrder = trackedOrders[0];
+
+        // Overall status across all kitchens in the order
+        const allDelivered = trackedOrders.every(o => o.status === 'delivered' || o.status === 'served');
+        const anyReady = trackedOrders.some(o => o.status === 'ready');
+        const anyPreparing = trackedOrders.some(o => o.status === 'preparing');
+
+        let statusText = isMultiRestaurant ? 'Orders Placed (All Kitchens)' : 'Order Placed';
+        let statusDesc = isMultiRestaurant ? 'All kitchens have accepted your order and are cooking.' : 'Waiting for restaurant confirmation...';
         let progressWidth = '15%';
-        let step1 = 'active';
-        let step2 = '';
-        let step3 = '';
-        let step4 = '';
+        let step1 = 'active', step2 = '', step3 = '', step4 = '';
 
-        if (status === 'preparing') {
-            progressWidth = '50%';
-            step1 = 'active';
-            step2 = 'active';
-        } else if (status === 'ready') {
-            progressWidth = '85%';
-            step1 = 'active';
-            step2 = 'active';
-            step3 = 'active';
-        } else if (status === 'served' || status === 'delivered') {
+        if (allDelivered) {
+            statusText = isMultiRestaurant ? 'All Dishes Served & Delivered' : 'Served & Delivered';
+            statusDesc = 'Enjoy your multi-restaurant feast! Thanks for ordering.';
             progressWidth = '100%';
-            step1 = 'active';
-            step2 = 'active';
-            step3 = 'active';
-            step4 = 'active';
+            step1 = 'active'; step2 = 'active'; step3 = 'active'; step4 = 'active';
+        } else if (anyReady) {
+            statusText = isMultiRestaurant ? 'Dishes Ready • Courier Collecting' : 'Food is Ready!';
+            statusDesc = isMultiRestaurant ? 'Dishes are ready! Rider is collecting orders across kitchens.' : 'Your order is ready to serve or pick up.';
+            progressWidth = '80%';
+            step1 = 'active'; step2 = 'active'; step3 = 'active';
+        } else if (anyPreparing) {
+            statusText = isMultiRestaurant ? 'Kitchens Preparing in Parallel' : 'Preparing Food';
+            statusDesc = isMultiRestaurant ? 'Our chefs across multiple restaurants are cooking your meals.' : 'Our chef is cooking your delicious meal.';
+            progressWidth = '50%';
+            step1 = 'active'; step2 = 'active';
         }
 
-        let statusText = 'Order Placed';
-        let statusDesc = 'Waiting for restaurant confirmation...';
-        if (status === 'preparing') {
-            statusText = 'Preparing Food';
-            statusDesc = 'Our chef is cooking your delicious meal.';
-        } else if (status === 'ready') {
-            statusText = 'Food is Ready!';
-            statusDesc = 'Your order is ready to serve or pick up.';
-        } else if (status === 'served' || status === 'delivered') {
-            statusText = 'Served & Delivered';
-            statusDesc = 'Enjoy your food! Thanks for ordering.';
-        }
+        const existingReviews = window.DineDirectStore.getReviews(primaryOrder.restaurantId);
+        const hasReviewed = existingReviews.some(r => String(r.orderId) === String(primaryOrder.id));
 
         const trackingHtml = `
             <div class="customer-tracking-content fade-in" style="min-height:100vh;">
@@ -1377,34 +1890,113 @@ const CustomerViews = {
                 </header>
                 <main class="mobile-main flex-center" style="padding-top:40px;">
                     <div class="tracking-container text-center" style="width:100%;">
-                        <div class="status-icon ${status === 'preparing' ? 'pulse' : ''}" style="margin:0 auto; width:100px; height:100px; background:rgba(255, 107, 53, 0.1); border-radius:50%; display:flex; align-items:center; justify-content:center;">
-                            <i data-lucide="${status === 'ready' ? 'bell-ring' : (status === 'served' ? 'check-circle' : 'chef-hat')}" style="width:48px;height:48px;color:var(--primary)"></i>
+                        <div class="status-icon ${anyPreparing ? 'pulse' : ''}" style="margin:0 auto; width:100px; height:100px; background:rgba(255, 107, 53, 0.1); border-radius:50%; display:flex; align-items:center; justify-content:center;">
+                            <i data-lucide="${anyReady ? 'bell-ring' : (allDelivered ? 'check-circle' : 'chef-hat')}" style="width:48px;height:48px;color:var(--primary)"></i>
                         </div>
                         <h2 class="mt-4">${statusText}</h2>
                         <p class="text-muted mt-2">${statusDesc}</p>
                         
-                        <div style="font-weight:bold; margin-top:16px; font-size:1rem; color:var(--text-main);">Order #${activeOrder.id}</div>
+                        <div style="font-weight:bold; margin-top:16px; font-size:1rem; color:var(--text-main);">
+                            ${isMultiRestaurant ? `Group Order #${primaryOrder.groupOrderId || primaryOrder.id} • ${trackedOrders.length} Restaurants` : `Order #${primaryOrder.id}`}
+                        </div>
                         
                         <div class="progress-bar-container mt-4" style="background:#e9ecef; height:8px; border-radius:4px; width:100%; overflow:hidden;">
                             <div class="progress-fill" style="background:var(--primary); height:100%; width:${progressWidth}; transition: width 0.5s ease;"></div>
                         </div>
 
                         <div class="order-steps mt-4" style="text-align:left; margin-left:15%;">
-                            <div class="step ${step1}">Order Placed</div>
-                            <div class="step ${step2}">Preparing</div>
-                            <div class="step ${step3}">Ready to Serve</div>
+                            <div class="step ${step1}">Orders Placed</div>
+                            <div class="step ${step2}">${isMultiRestaurant ? 'Parallel Cooking' : 'Preparing'}</div>
+                            <div class="step ${step3}">${isMultiRestaurant ? 'Multi-Stop Courier Transit' : 'Ready to Serve'}</div>
                             <div class="step ${step4}">Delivered</div>
                         </div>
 
-                        ${status === 'served' || status === 'delivered' ? `
-                            <div class="success-banner animate-fade-in card mt-4" style="background:rgba(46, 204, 113, 0.15); border:1px solid var(--success); color:#1e7b43; padding:16px; border-radius:12px; margin-top:24px;">
-                                <h4 style="font-weight:bold;">🍕 Delivered!</h4>
-                                <p style="font-size:0.85rem; margin-top:4px;">We hope you enjoyed Dine Direct. Tap below to dine again.</p>
-                                <button class="btn btn-primary btn-block mt-3" onclick="window.location.hash='#customer/home'" style="background:var(--success);">Dine Again</button>
+                        <!-- Multi-Kitchen Independent Tracking Cards -->
+                        ${isMultiRestaurant ? `
+                            <div class="mt-4 text-left" style="text-align:left;">
+                                <h4 style="font-size:0.95rem; font-weight:700; margin-bottom:10px; display:flex; align-items:center; gap:8px;">
+                                    <i data-lucide="chef-hat" style="color:var(--primary); width:18px; height:18px;"></i>
+                                    <span>Kitchen Preparation Status (${trackedOrders.length} Restaurants)</span>
+                                </h4>
+                                ${trackedOrders.map(ord => {
+                                    const r = window.DineDirectStore.getRestaurant(ord.restaurantId) || { name: 'Restaurant' };
+                                    const badgeClass = ord.status === 'delivered' || ord.status === 'served' ? 'bg-success' : (ord.status === 'ready' ? 'bg-warning' : (ord.status === 'preparing' ? 'bg-primary' : 'bg-danger'));
+                                    return `
+                                        <div class="multi-kitchen-card" style="border-left:4px solid ${ord.status === 'ready' ? '#f59e0b' : (ord.status === 'served' || ord.status === 'delivered' ? '#10b981' : (ord.status === 'preparing' ? 'var(--primary)' : '#ef4444'))};">
+                                            <div style="display:flex; justify-content:space-between; align-items:center;">
+                                                <div>
+                                                    <strong style="font-size:0.95rem; color:var(--text-main);">${r.name}</strong>
+                                                    <span style="font-size:0.75rem; color:var(--text-muted); display:block;">Ticket #${ord.id}</span>
+                                                </div>
+                                                <span class="badge ${badgeClass}" style="text-transform:capitalize; padding:4px 10px; border-radius:10px; font-size:0.75rem;">
+                                                    ${ord.status === 'preparing' ? '🍳 Cooking' : (ord.status === 'ready' ? '🔔 Ready' : (ord.status === 'served' || ord.status === 'delivered' ? '✅ Delivered' : '📋 Received'))}
+                                                </span>
+                                            </div>
+                                            <div style="margin-top:8px; font-size:0.85rem; color:#475569; display:flex; flex-wrap:wrap; gap:6px;">
+                                                ${(ord.items || []).map(it => `
+                                                    <span style="background:#f1f5f9; padding:2px 8px; border-radius:6px; font-size:0.8rem;">${it.qty}x ${it.name}</span>
+                                                `).join('')}
+                                            </div>
+                                        </div>
+                                    `;
+                                }).join('')}
                             </div>
-                        ` : `
-                            <button class="btn btn-secondary btn-block mt-4" style="border:1px solid #ddd;" onclick="window.location.hash='#customer/home'">Back to Home</button>
-                        `}
+                        ` : ''}
+
+                        <!-- GST Tax Invoice Action -->
+                        <button class="btn btn-secondary btn-block mt-4" onclick="window.CustomerViews.openTaxInvoiceModal('${primaryOrder.groupOrderId || primaryOrder.id}')" style="border:1px solid #cbd5e1; display:flex; align-items:center; justify-content:center; gap:8px; padding:12px; font-weight:600; font-size:0.9rem; background:#ffffff;">
+                            <i data-lucide="receipt"></i> <span>📄 View GST Tax Invoice / Print Bill</span>
+                        </button>
+
+                        ${allDelivered ? `
+                            ${hasReviewed ? `
+                                <div class="review-submission-card mt-3 animate-fade-in" style="text-align:center; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:12px; padding:20px;">
+                                    <div style="font-size:2rem; margin-bottom:4px;">🌟</div>
+                                    <h4 style="color:#166534; font-weight:700; margin:0;">Review Submitted!</h4>
+                                    <p style="font-size:0.85rem; color:#15803d; margin-top:6px;">Thank you for your valuable feedback! All kitchens have received your compliments.</p>
+                                    <button class="btn btn-primary btn-block mt-3" onclick="window.location.hash='#customer/home'" style="background:var(--success);">Dine Again</button>
+                                </div>
+                            ` : `
+                                <div class="review-submission-card mt-3 animate-fade-in" id="reviewFormCard">
+                                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                                        <h4 style="font-size:1.05rem; font-weight:700; margin:0; display:flex; align-items:center; gap:8px;">
+                                            <i data-lucide="award" style="color:var(--primary); width:20px; height:20px;"></i>
+                                            <span>Rate Your Food & Dining</span>
+                                        </h4>
+                                        <span class="badge" style="background:#fee2e2; color:#b91c1c; font-size:0.75rem; font-weight:700; padding:3px 8px; border-radius:8px;">Verified Diner</span>
+                                    </div>
+                                    <p style="font-size:0.8rem; color:var(--text-muted); margin:4px 0 12px;">How was the taste, presentation, and multi-kitchen delivery?</p>
+
+                                    <div class="star-rating-selector" id="starRatingSelector">
+                                        <button type="button" class="star-btn active" data-val="1">★</button>
+                                        <button type="button" class="star-btn active" data-val="2">★</button>
+                                        <button type="button" class="star-btn active" data-val="3">★</button>
+                                        <button type="button" class="star-btn active" data-val="4">★</button>
+                                        <button type="button" class="star-btn active" data-val="5">★</button>
+                                    </div>
+
+                                    <div style="font-size:0.8rem; font-weight:600; color:var(--text-muted); margin-bottom:6px;">Add Compliment Tags:</div>
+                                    <div class="compliment-chips" id="complimentChips">
+                                        <button type="button" class="compliment-chip selected" data-tag="Delicious Taste">😋 Delicious Taste</button>
+                                        <button type="button" class="compliment-chip selected" data-tag="Hot & Fresh">🔥 Hot & Fresh</button>
+                                        <button type="button" class="compliment-chip" data-tag="Fast Multi-Pickup">⚡ Fast Multi-Pickup</button>
+                                        <button type="button" class="compliment-chip" data-tag="Great Packaging">📦 Great Packaging</button>
+                                        <button type="button" class="compliment-chip" data-tag="Value for Money">💰 Value for Money</button>
+                                        <button type="button" class="compliment-chip" data-tag="Friendly Courier">🤝 Friendly Courier</button>
+                                    </div>
+
+                                    <div class="form-group mt-3">
+                                        <textarea class="review-textarea" id="reviewCommentInput" rows="2" placeholder="Share what you loved about this order..."></textarea>
+                                    </div>
+
+                                    <button class="btn btn-primary btn-block mt-3" id="btnSubmitReview" data-order-id="${primaryOrder.id}" data-rest-id="${primaryOrder.restaurantId}" style="display:flex; align-items:center; justify-content:center; gap:8px;">
+                                        <i data-lucide="send"></i> <span>Submit Food Review</span>
+                                    </button>
+                                </div>
+                            `}
+                        ` : ''}
+
+                        <button class="btn btn-secondary btn-block mt-3" style="border:1px solid #ddd;" onclick="window.location.hash='#customer/home'">Back to Home</button>
                     </div>
                 </main>
             </div>
@@ -1412,13 +2004,68 @@ const CustomerViews = {
         return CustomerViews.wrapLayout(trackingHtml, 'orders');
     },
 
-    setupTrackingListeners: () => {},
+    setupTrackingListeners: () => {
+        // Star rating clicks
+        let currentRating = 5;
+        const starButtons = document.querySelectorAll('#starRatingSelector .star-btn');
+        starButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const val = parseInt(btn.getAttribute('data-val'), 10);
+                currentRating = val;
+                starButtons.forEach(b => {
+                    const bVal = parseInt(b.getAttribute('data-val'), 10);
+                    b.classList.toggle('active', bVal <= val);
+                });
+            });
+        });
+
+        // Compliment chips toggle
+        const chipButtons = document.querySelectorAll('#complimentChips .compliment-chip');
+        chipButtons.forEach(chip => {
+            chip.addEventListener('click', () => {
+                chip.classList.toggle('selected');
+            });
+        });
+
+        // Review submit handler
+        const btnSubmitReview = document.getElementById('btnSubmitReview');
+        if (btnSubmitReview) {
+            btnSubmitReview.addEventListener('click', async () => {
+                const orderId = btnSubmitReview.getAttribute('data-order-id');
+                const restId = btnSubmitReview.getAttribute('data-rest-id');
+                const commentInput = document.getElementById('reviewCommentInput');
+                const comment = commentInput ? commentInput.value.trim() : '';
+
+                const selectedTags = [];
+                document.querySelectorAll('#complimentChips .compliment-chip.selected').forEach(c => {
+                    selectedTags.push(c.getAttribute('data-tag'));
+                });
+
+                const session = window.DineDirectStore.getSession();
+                const customerName = session.currentUser || 'Guest Diner';
+
+                btnSubmitReview.disabled = true;
+                btnSubmitReview.innerHTML = `Submitting review...`;
+
+                await window.DineDirectStore.submitReview(
+                    restId,
+                    orderId,
+                    customerName,
+                    currentRating,
+                    selectedTags,
+                    comment
+                );
+
+                showToast('🌟 Thank you for your review!');
+                if (window.renderApp) window.renderApp();
+            });
+        }
+    },
 
 
     orders: () => {
         const session = window.DineDirectStore.getSession();
-        const restId = session.activeRestaurantId || 'r1';
-        const orders = window.DineDirectStore.getOrders(restId).reverse();
+        const orders = window.DineDirectStore.getOrders().reverse();
 
         const ordersHtml = `
             <div class="customer-orders-content fade-in" style="min-height:100vh;">
@@ -1434,34 +2081,48 @@ const CustomerViews = {
                             </div>
                         ` : orders.map(order => {
                             const date = new Date(order.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                            const rest = window.DineDirectStore.getRestaurant(order.restaurantId);
+                            const restName = rest ? rest.name : order.restaurantId;
+                            const isGroupOrder = Boolean(order.groupOrderId);
+
                             return `
                                 <div class="card mt-4" style="padding:16px;">
                                     <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px dashed rgba(0,0,0,0.1); padding-bottom:8px; margin-bottom:12px;">
                                         <div>
-                                            <strong style="font-size:1.05rem;">Order #${order.id}</strong>
-                                            <span style="font-size:0.8rem; color:var(--text-muted); display:block;">${date} • Table ${order.tableNum}</span>
+                                            <div style="display:flex; align-items:center; gap:6px;">
+                                                <strong style="font-size:1.05rem;">${restName}</strong>
+                                                ${isGroupOrder ? `<span class="badge bg-primary" style="font-size:0.65rem; padding:2px 6px; border-radius:6px;">Multi-Vendor</span>` : ''}
+                                            </div>
+                                            <span style="font-size:0.8rem; color:var(--text-muted); display:block;">Order #${order.id} • ${date} • Table ${order.tableNum}</span>
                                         </div>
                                         <span class="badge ${order.status === 'served' || order.status === 'delivered' ? 'bg-success' : (order.status === 'new' ? 'bg-danger' : 'bg-warning')}" style="padding:6px 12px; border-radius:12px; font-size:0.75rem; text-transform:capitalize;">
                                             ${order.status}
                                         </span>
                                     </div>
                                     <div style="font-size:0.9rem;">
-                                        ${order.items.map(item => `
+                                        ${order.items.map(item => {
+                                            const q = item.qty || item.quantity || 1;
+                                            return `
                                             <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
-                                                <span>${item.qty}x ${item.name}</span>
-                                                <span class="text-muted">₹${item.price * item.qty}</span>
+                                                <span>${q}x ${item.name}</span>
+                                                <span class="text-muted">₹${item.price * q}</span>
                                             </div>
-                                        `).join('')}
+                                        `}).join('')}
                                     </div>
                                     <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px; border-top:1px solid rgba(0,0,0,0.05); padding-top:12px; font-weight:bold;">
-                                        <span>Total Paid via ${order.paymentMethod === 'pay_now' ? 'Online' : 'Counter'}</span>
-                                        <span style="color:var(--primary); font-size:1.1rem;">₹${order.total}</span>
+                                        <span>Total Paid via ${order.paymentMethod === 'pay_now' || order.paymentMethod === 'card' || order.paymentMethod === 'upi' ? 'Online' : 'Counter'}</span>
+                                        <span style="color:var(--primary); font-size:1.1rem;">₹${order.total + (Number(order.deliveryFee) || 0)}</span>
                                     </div>
-                                    ${order.status !== 'delivered' && order.status !== 'served' ? `
-                                        <button class="btn btn-primary btn-block mt-3" onclick="window.location.hash='#customer/tracking'">
-                                            Track Live Status <i data-lucide="arrow-right"></i>
+                                    <div style="display:flex; gap:10px; margin-top:12px;">
+                                        <button class="btn btn-secondary" onclick="window.CustomerViews.openTaxInvoiceModal('${order.groupOrderId || order.id}')" style="flex:1; border:1px solid #cbd5e1; font-size:0.85rem; padding:8px 12px; border-radius:8px; display:inline-flex; align-items:center; justify-content:center; gap:6px;">
+                                            <i data-lucide="receipt"></i> <span>📄 Tax Invoice</span>
                                         </button>
-                                    ` : ''}
+                                        ${order.status !== 'delivered' && order.status !== 'served' ? `
+                                            <button class="btn btn-primary" onclick="window.location.hash='#customer/tracking'" style="flex:1; font-size:0.85rem; padding:8px 12px; display:inline-flex; align-items:center; justify-content:center; gap:6px;">
+                                                <span>Track Live</span> <i data-lucide="arrow-right"></i>
+                                            </button>
+                                        ` : ''}
+                                    </div>
                                 </div>
                             `;
                         }).join('')}

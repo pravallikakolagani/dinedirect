@@ -83,3 +83,59 @@
     margin-right: 6px;
     animation: pulse 1s infinite alternate;
 }
+
+/* Thermal KOT Modal & Print Styles */
+.kot-modal-container {
+    max-width: 400px;
+    width: 92%;
+    margin: 0 auto;
+    background: #fff;
+    border-radius: 14px;
+    padding: 24px;
+    box-shadow: 0 10px 35px rgba(0,0,0,0.25);
+}
+
+.kot-paper {
+    font-family: 'Courier New', Courier, monospace;
+    background: #fafafa;
+    color: #1a1a1a;
+    padding: 18px;
+    border: 1px dashed #ccc;
+    border-radius: 8px;
+    font-size: 0.86rem;
+    line-height: 1.4;
+    max-height: 60vh;
+    overflow-y: auto;
+}
+
+.kot-divider {
+    border-bottom: 1px dashed #999;
+    margin: 8px 0;
+}
+
+.kot-double-divider {
+    border-bottom: 2px solid #333;
+    margin: 8px 0;
+}
+
+@media print {
+    body * {
+        visibility: hidden !important;
+    }
+    #kotPrintContent, #kotPrintContent * {
+        visibility: visible !important;
+    }
+    #kotPrintContent {
+        position: fixed;
+        left: 0;
+        top: 0;
+        width: 78mm;
+        margin: 0;
+        padding: 4mm;
+        font-family: 'Courier New', Courier, monospace;
+        font-size: 11pt;
+        color: #000 !important;
+        background: #fff !important;
+        border: none !important;
+    }
+}

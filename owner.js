@@ -35,6 +35,11 @@ const OwnerViews = {
         const allAlerts = window.DineDirectStore.state.supportAlerts || [];
         const supportAlerts = allAlerts.filter(sa => sa.restaurantId === restId && sa.status === 'active');
         const resolvedAlerts = allAlerts.filter(sa => sa.restaurantId === restId && sa.status === 'resolved');
+        const allReviews = window.DineDirectStore.state.reviews || [];
+        const restaurantReviews = allReviews.filter(r => r.restaurantId === restId);
+        const avgOwnerRating = restaurantReviews.length > 0
+            ? (restaurantReviews.reduce((sum, r) => sum + (Number(r.rating) || 5), 0) / restaurantReviews.length).toFixed(1)
+            : (rest.rating || '4.8');
         
         const todayStr = new Date().toDateString();
         const todayOrders = orders.filter(o => new Date(o.timestamp).toDateString() === todayStr);
@@ -194,7 +199,10 @@ const OwnerViews = {
                                                         ${order.status}
                                                     </span>
                                                 </td>
-                                                <td style="padding: 12px 8px; text-align:right;">
+                                                <td style="padding: 12px 8px; text-align:right; white-space:nowrap;">
+                                                    <button class="btn btn-secondary print-kot-btn" data-id="${order.id}" style="padding:6px 10px; font-size:0.8rem; border:1px solid #ddd; margin-right:4px;" title="Print KOT">
+                                                        <i data-lucide="printer" style="width:13px; height:13px;"></i>
+                                                    </button>
                                                     ${order.status === 'new' ? `
                                                         <button class="btn btn-primary start-prep-btn" data-id="${order.id}" style="padding:6px 12px; font-size:0.8rem;">Start Cooking</button>
                                                     ` : ''}
@@ -212,7 +220,69 @@ const OwnerViews = {
                             </div>
                         `}
                     </div>
+
+                    <!-- Customer Reviews & Feedback Section -->
+                    <div class="card mt-4" style="padding: 20px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+                            <h3 style="margin:0; display:flex; align-items:center; gap:8px;">
+                                <i data-lucide="star" style="color:#f59e0b; width:20px; height:20px; fill:#f59e0b;"></i>
+                                Guest Reviews & Ratings (${restaurantReviews.length})
+                            </h3>
+                            <span class="badge" style="background:#fef3c7; color:#b45309; font-size:0.9rem; padding:6px 12px; border-radius:20px; font-weight:700;">
+                                ★ ${avgOwnerRating} / 5.0
+                            </span>
+                        </div>
+                        ${restaurantReviews.length === 0 ? `
+                            <div style="text-align:center; padding:30px 0; color:var(--text-muted);">
+                                <i data-lucide="message-square" style="width:36px; height:36px; opacity:0.3; margin-bottom:8px;"></i>
+                                <p style="font-size:0.85rem;">No reviews submitted yet. Feedback from served orders will appear here.</p>
+                            </div>
+                        ` : `
+                            <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); gap:14px;">
+                                ${restaurantReviews.slice(0, 6).map(rev => {
+                                    const date = new Date(rev.timestamp).toLocaleDateString([], { month: 'short', day: 'numeric' });
+                                    const stars = '★'.repeat(rev.rating) + '☆'.repeat(5 - rev.rating);
+                                    return `
+                                        <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:14px;">
+                                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                                                <strong style="font-size:0.92rem; color:var(--text-main);">${rev.customerName}</strong>
+                                                <span style="font-size:0.75rem; color:#94a3b8;">${date}</span>
+                                            </div>
+                                            <div style="color:#f59e0b; font-size:1rem; letter-spacing:2px; margin-bottom:6px;">${stars}</div>
+                                            ${rev.tags && rev.tags.length > 0 ? `
+                                                <div style="display:flex; flex-wrap:wrap; gap:4px; margin-bottom:8px;">
+                                                    ${rev.tags.map(t => `<span style="background:#e0f2fe; color:#0369a1; font-size:0.7rem; padding:2px 8px; border-radius:12px; font-weight:600;">${t}</span>`).join('')}
+                                                </div>
+                                            ` : ''}
+                                            <p style="font-size:0.85rem; color:#475569; margin:0; line-height:1.4;">${rev.comment || 'No written comment provided.'}</p>
+                                        </div>
+                                    `;
+                                }).join('')}
+                            </div>
+                        `}
+                    </div>
                 </main>
+
+                <!-- KOT Thermal Print Modal -->
+                <div class="modal-overlay d-none" id="kotModal" style="position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.65); z-index:9999; display:none; align-items:center; justify-content:center;">
+                    <div class="kot-modal-container">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+                            <h3 style="margin:0; font-size:1.1rem; display:flex; align-items:center; gap:8px;">
+                                <i data-lucide="printer" style="color:var(--primary);"></i> Kitchen Order Ticket (KOT)
+                            </h3>
+                            <button id="btnCloseKotModal" style="background:none; border:none; cursor:pointer; font-size:1.5rem; color:#888; line-height:1;">&times;</button>
+                        </div>
+                        <div id="kotPaper" class="kot-paper"></div>
+                        <div style="display:flex; gap:12px; margin-top:20px;">
+                            <button class="btn btn-secondary" id="btnCancelKot" style="flex:1; border:1px solid #ddd;">Close</button>
+                            <button class="btn btn-primary" id="btnPrintKotAction" style="flex:1.5; display:inline-flex; align-items:center; justify-content:center; gap:6px;">
+                                <i data-lucide="printer"></i> Print Thermal KOT
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="kotPrintContent" style="display:none;"></div>
             </div>
         `;
     },
@@ -260,6 +330,70 @@ const OwnerViews = {
                 const alertId = btn.getAttribute('data-id');
                 window.DineDirectStore.resolveSupportAlert(alertId);
                 if (window.showToast) window.showToast(`Staff sent to resolve alert!`);
+            });
+        });
+
+        // KOT Print Modal Listeners on Dashboard
+        const kotModal = document.getElementById('kotModal');
+        const kotPaper = document.getElementById('kotPaper');
+        const kotPrintContent = document.getElementById('kotPrintContent');
+        const btnCloseKotModal = document.getElementById('btnCloseKotModal');
+        const btnCancelKot = document.getElementById('btnCancelKot');
+        const btnPrintKotAction = document.getElementById('btnPrintKotAction');
+
+        const closeKot = () => {
+            if (kotModal) {
+                kotModal.classList.add('d-none');
+                kotModal.style.display = 'none';
+            }
+        };
+
+        if (btnCloseKotModal) btnCloseKotModal.addEventListener('click', closeKot);
+        if (btnCancelKot) btnCancelKot.addEventListener('click', closeKot);
+        if (btnPrintKotAction) {
+            btnPrintKotAction.addEventListener('click', () => {
+                window.print();
+            });
+        }
+
+        document.querySelectorAll('.print-kot-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const orderId = btn.getAttribute('data-id');
+                const orders = window.DineDirectStore.getOrders(restId);
+                const order = orders.find(o => o.id === orderId);
+                if (!order) return;
+
+                const dateStr = new Date(order.timestamp).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' });
+                const totalQty = (order.items || []).reduce((sum, it) => sum + (it.qty || 1), 0);
+
+                const kotText = 
+`========================================
+       KITCHEN ORDER TICKET (KOT)
+========================================
+Restaurant : ${rest ? rest.name : 'Dine Direct'}
+Order No   : #${order.id}
+Table No   : TABLE ${order.tableNum}
+Customer   : ${order.customerName || 'Guest'}
+Date/Time  : ${dateStr}
+Type       : DINE-IN SELF-ORDER
+----------------------------------------
+QTY   ITEM DESCRIPTION
+----------------------------------------
+${(order.items || []).map(it => ` ${String(it.qty).padEnd(4)} ${it.name}`).join('\n')}
+----------------------------------------
+Total Items : ${totalQty}
+Ticket State: ${order.status.toUpperCase()}
+Payment     : ${order.paymentStatus.toUpperCase()} (${order.paymentMethod === 'pay_now' ? 'ONLINE' : 'COUNTER'})
+========================================
+    *** PREPARE FRESH & EXPEDITE ***
+========================================`;
+
+                if (kotPaper) kotPaper.innerHTML = `<pre style="margin:0; font-family:inherit; white-space:pre-wrap;">${kotText}</pre>`;
+                if (kotPrintContent) kotPrintContent.innerHTML = `<pre style="margin:0; font-family:inherit; font-size:11pt;">${kotText}</pre>`;
+                if (kotModal) {
+                    kotModal.classList.remove('d-none');
+                    kotModal.style.display = 'flex';
+                }
             });
         });
     },
